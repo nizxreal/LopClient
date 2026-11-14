@@ -1,0 +1,566 @@
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('overlay');
+
+document.getElementById('btnMenu').addEventListener('click', () => {
+  sidebar.classList.add('open');
+  overlay.classList.add('show');
+});
+
+function closeSidebar() {
+  sidebar.classList.remove('open');
+  overlay.classList.remove('show');
+}
+overlay.addEventListener('click', closeSidebar);
+document.getElementById('btnCloseSidebar')?.addEventListener('click', closeSidebar);
+
+function switchPage(page) {
+  document.querySelectorAll('.nav-item[data-page]').forEach(n => {
+    n.classList.toggle('active', n.dataset.page === page);
+  });
+  document.getElementById('page-dashboard').classList.toggle('hidden', page !== 'dashboard');
+  document.getElementById('page-features').classList.toggle('hidden', page !== 'features');
+  document.getElementById('page-group')?.classList.toggle('hidden', page !== 'group');
+  document.getElementById('page-custom')?.classList.toggle('hidden', page !== 'custom');
+  const titles = { dashboard: 'LopClient', features: 'LopClient • Fitur', group: 'LopClient • Grup & Welcome', custom: 'LopClient • Custom Command' };
+  document.getElementById('pageTitle').textContent = titles[page] || 'LopClient';
+}
+
+document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+  el.addEventListener('click', () => {
+    switchPage(el.dataset.page);
+    closeSidebar();
+  });
+});
+
+document.getElementById('btnGoActivateVip')?.addEventListener('click', () => {
+  switchPage('dashboard');
+  setTimeout(() => {
+    document.getElementById('vipTokenInput')?.focus();
+  }, 150);
+});
+
+// Theme
+const btnTheme = document.getElementById('btnTheme');
+btnTheme.addEventListener('click', () => {
+  document.body.classList.toggle('light');
+  const isLight = document.body.classList.contains('light');
+  btnTheme.textContent = isLight ? 'Terang' : 'Gelap';
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+});
+if (localStorage.getItem('theme') === 'light') {
+  document.body.classList.add('light');
+  btnTheme.textContent = 'Terang';
+}
+
+// Logout Web
+document.getElementById('btnLogout').addEventListener('click', async () => {
+  await fetch('/api/logout', { method: 'POST' });
+  window.location.href = '/login.html';
+});
+
+function formatUptime(sec) {
+  if (!sec || sec <= 0) return '0m 0d';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return h > 0 ? `${h}j ${m}m` : `${m}m ${s}d`;
+}
+
+function formatLicenseTime(sec) {
+  if (!sec || sec <= 0) return 'Expired';
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  return `${d} hari ${h} jam`;
+}
+
+// Pairing Action
+const btnPair = document.getElementById('btnPair');
+const phoneInput = document.getElementById('phoneInput');
+const codeDisplay = document.getElementById('codeDisplay');
+
+btnPair.addEventListener('click', async () => {
+  const phoneNumber = phoneInput.value.trim();
+  if (!phoneNumber) return alert('Nomor WhatsApp wajib diisi');
+  btnPair.disabled = true;
+  btnPair.textContent = 'Memproses...';
+  try {
+    const res = await fetch('/api/pairing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber }),
+    });
+    const data = await res.json();
+    if (data.success && data.pairingCode) {
+      codeDisplay.textContent = data.pairingCode;
+      codeDisplay.style.display = 'block';
+      refreshDashboard();
+    } else {
+      alert(data.error || 'Gagal mendapatkan pairing code');
+    }
+  } catch {
+    alert('Gagal terhubung ke server');
+  } finally {
+    btnPair.disabled = false;
+    btnPair.textContent = 'Dapatkan Pairing Code';
+  }
+});
+
+// Unpair Action
+document.getElementById('btnUnpair').addEventListener('click', async () => {
+  if (!confirm('Putuskan koneksi WhatsApp dan hapus sesi saat ini?')) return;
+  try {
+    await fetch('/api/unpair', { method: 'POST' });
+    codeDisplay.style.display = 'none';
+    refreshDashboard();
+  } catch {
+    alert('Gagal memutus koneksi');
+  }
+});
+
+// Aktivasi Token VIP
+const btnActivateVip = document.getElementById('btnActivateVip');
+const vipTokenInput = document.getElementById('vipTokenInput');
+const vipActivateMsg = document.getElementById('vipActivateMsg');
+
+btnActivateVip?.addEventListener('click', async () => {
+  const token = vipTokenInput.value.trim();
+  if (!token) return;
+  btnActivateVip.disabled = true;
+  btnActivateVip.textContent = 'Memeriksa...';
+  try {
+    const res = await fetch('/api/activate-vip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      vipTokenInput.value = '';
+      vipActivateMsg.style.color = 'var(--online)';
+      vipActivateMsg.textContent = '✓ VIP berhasil diaktifkan!';
+      refreshDashboard();
+    } else {
+      vipActivateMsg.style.color = 'var(--danger)';
+      vipActivateMsg.textContent = data.error || 'Token tidak valid';
+    }
+  } catch {
+    vipActivateMsg.textContent = 'Gagal terhubung ke server';
+  } finally {
+    btnActivateVip.disabled = false;
+    btnActivateVip.textContent = 'Aktifkan';
+  }
+});
+
+let lastFeatures = null;
+let lastIsVip = false;
+
+async function updateConfig(payload) {
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.success) {
+      renderConfig(data.config);
+      if (lastFeatures) renderFeatures(lastFeatures, data.config, lastIsVip);
+    }
+  } catch {}
+}
+
+document.querySelectorAll('#modeGroup .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => updateConfig({ mode: btn.dataset.val }));
+});
+
+document.querySelectorAll('#prefixGroup .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => updateConfig({ prefix: btn.dataset.val }));
+});
+
+document.getElementById('toggleAutoRead').addEventListener('change', (e) => {
+  updateConfig({ autoRead: e.target.checked });
+});
+
+const customBotNameInput = document.getElementById('customBotNameInput');
+const botNameSaveMsg = document.getElementById('botNameSaveMsg');
+let botNameInitialized = false;
+
+document.getElementById('btnSaveBotName').addEventListener('click', async () => {
+  const val = customBotNameInput.value.trim();
+  if (!val) return;
+  await updateConfig({ botName: val });
+  botNameSaveMsg.textContent = `✓ Nama bot "${val}" berhasil disimpan.`;
+  setTimeout(() => { botNameSaveMsg.textContent = ''; }, 3000);
+});
+
+function renderFeatures(features, cfg, isVip) {
+  lastFeatures = features;
+  lastIsVip = Boolean(isVip);
+
+  const pfx = cfg.prefix || '';
+  document.getElementById('userMenuHint').textContent = `${pfx}menu`;
+  document.getElementById('funMenuBadge').textContent = `${pfx}menu`;
+
+  const promoBanner = document.getElementById('featuresVipBanner');
+  if (promoBanner) {
+    promoBanner.classList.toggle('hidden', lastIsVip);
+  }
+
+  if (!botNameInitialized && cfg.botName) {
+    customBotNameInput.value = cfg.botName;
+    botNameInitialized = true;
+  }
+
+  // 1. Utilitas Bawaan (/menu)
+  const lockedContainer = document.getElementById('lockedUtilsList');
+  lockedContainer.innerHTML = (features.lockedUtils || []).map(u => {
+    const isVipFeature = u.tier === 'vip';
+    let badgeHtml = `<span class="badge-online">Free</span>`;
+    if (isVipFeature) {
+      badgeHtml = lastIsVip
+        ? `<span class="badge-vip unlocked">VIP ✓</span>`
+        : `<span class="badge-vip">VIP 🔒</span>`;
+    }
+    return `
+      <div class="control-row">
+        <div class="control-info">
+          <span class="cmd-pill">/${u.name}</span>
+          <span>${u.desc}</span>
+        </div>
+        ${badgeHtml}
+      </div>
+    `;
+  }).join('');
+
+  // 2. Fun Commands (.menu)
+  const funContainer = document.getElementById('funCommandsList');
+  funContainer.innerHTML = (features.funCommands || []).map(f => {
+    const isVipFeature = f.tier === 'vip';
+    const isLocked = isVipFeature && !lastIsVip;
+    const isChecked = !isLocked && cfg.funFeatures?.[f.name] !== false;
+    const vipTag = isVipFeature
+      ? `<span class="badge-vip ${lastIsVip ? 'unlocked' : ''}" style="margin-left:6px;">${lastIsVip ? 'VIP ✓' : 'VIP 🔒'}</span>`
+      : '';
+
+    return `
+      <div class="control-row">
+        <div class="control-info">
+          <div><span class="cmd-pill">${pfx}${f.name}</span>${vipTag}</div>
+          <span>${f.desc}</span>
+        </div>
+        <label class="switch ${isLocked ? 'locked' : ''}" title="${isLocked ? 'Aktifkan Token VIP untuk membuka' : ''}">
+          <input type="checkbox" data-fun="${f.name}" ${isChecked ? 'checked' : ''} ${isLocked ? 'disabled' : ''}>
+          <span class="slider"></span>
+        </label>
+      </div>
+    `;
+  }).join('');
+
+  funContainer.querySelectorAll('input[data-fun]:not(:disabled)').forEach(inp => {
+    inp.addEventListener('change', (e) => {
+      const fname = e.target.dataset.fun;
+      updateConfig({ funFeatures: { [fname]: e.target.checked } });
+    });
+  });
+}
+
+function renderConfig(cfg) {
+  document.querySelectorAll('#modeGroup .seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === cfg.mode);
+  });
+  document.querySelectorAll('#prefixGroup .seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === cfg.prefix);
+  });
+  document.getElementById('toggleAutoRead').checked = Boolean(cfg.autoRead);
+}
+
+async function refreshDashboard() {
+  try {
+    const res = await fetch('/api/dashboard');
+    if (res.status === 401) {
+      window.location.href = '/login.html';
+      return;
+    }
+    const { bot, tier, stats, config, features } = await res.json();
+
+    const statusPill = document.getElementById('statusPill');
+    const botStatusText = document.getElementById('botStatusText');
+    const pairingCard = document.getElementById('pairingCard');
+    const connectedCard = document.getElementById('connectedCard');
+
+    if (bot.status === 'connected') {
+      statusPill.textContent = '● Connected';
+      statusPill.classList.add('online');
+      botStatusText.textContent = 'Status: Terhubung';
+      pairingCard.classList.add('hidden');
+      connectedCard.classList.remove('hidden');
+
+      document.getElementById('botName').textContent = bot.name || 'WhatsApp Bot';
+      document.getElementById('botPhone').textContent = bot.phone ? `+${bot.phone}` : 'Nomor terhubung';
+    } else {
+      statusPill.textContent = bot.status === 'pairing' ? '● Pairing...' : '● Disconnected';
+      statusPill.classList.remove('online');
+      botStatusText.textContent = 'Status: Terputus';
+      pairingCard.classList.remove('hidden');
+      connectedCard.classList.add('hidden');
+    }
+
+    const licLabel = document.getElementById('licenseIdLabel');
+    const licTime = document.getElementById('licenseRemaining');
+    const tierBadge = document.getElementById('tierBadge');
+    const tierDesc = document.getElementById('tierDesc');
+    const isVip = Boolean(tier && tier.isVip);
+
+    if (isVip) {
+      tierBadge.textContent = `VIP • ${tier.licenseId}`;
+      tierBadge.style.background = 'var(--online-soft)';
+      tierBadge.style.color = 'var(--online)';
+      tierBadge.style.borderColor = 'var(--online-border)';
+      tierDesc.textContent = `Status VIP Aktif (Sisa masa aktif: ${formatLicenseTime(tier.remainingSeconds)}).`;
+      licLabel.textContent = `Lisensi VIP • ${tier.licenseId}`;
+      licTime.textContent = formatLicenseTime(tier.remainingSeconds);
+    } else {
+      tierBadge.textContent = 'FREE';
+      tierBadge.style.background = '';
+      tierBadge.style.color = '';
+      tierBadge.style.borderColor = '';
+      tierDesc.textContent = 'Anda menggunakan paket Gratis. Aktifkan Token VIP untuk membuka fitur eksklusif.';
+      licLabel.textContent = 'Paket Saat Ini';
+      licTime.textContent = 'FREE';
+    }
+
+    document.getElementById('statCommands').textContent = stats.totalCommands;
+    document.getElementById('statChats').textContent = stats.activeChats;
+    document.getElementById('statUptime').textContent = bot.status === 'connected' ? formatUptime(bot.uptimeSeconds) : '0m 0d';
+    document.getElementById('statRam').textContent = `${stats.ramUsedMb} MB`;
+    document.getElementById('statRamSub').textContent = `dari ${stats.ramTotalMb} MB`;
+
+    renderConfig(config);
+    currentIsVip = Boolean(isVip);
+    currentBotPrefix = config.prefix || ".";
+    if (config.groupSettings) syncGroupSettingsUI(config.groupSettings);
+    if (Array.isArray(config.customCommands)) {
+      currentCustomCommands = config.customCommands;
+      renderCustomCommandsUI();
+    }
+    if (features) renderFeatures(features, config, isVip);
+  } catch {}
+}
+
+refreshDashboard();
+setInterval(refreshDashboard, 3000);
+
+
+// Grup & Welcome Custom Settings
+let groupFormInitialized = false;
+function syncGroupSettingsUI(gs) {
+  if (!gs || groupFormInitialized) return;
+  groupFormInitialized = true;
+  const elWelcome = document.getElementById('toggleWelcome');
+  const elWelcomeTxt = document.getElementById('welcomeTextInput');
+  const elLeave = document.getElementById('toggleLeave');
+  const elLeaveTxt = document.getElementById('leaveTextInput');
+  const elAntiLink = document.getElementById('toggleAntiLink');
+  const elAntiToxic = document.getElementById('toggleAntiToxic');
+
+  if (elWelcome) elWelcome.checked = Boolean(gs.welcomeEnabled);
+  if (elWelcomeTxt) elWelcomeTxt.value = gs.welcomeText || '';
+  if (elLeave) elLeave.checked = Boolean(gs.leaveEnabled);
+  if (elLeaveTxt) elLeaveTxt.value = gs.leaveText || '';
+  if (elAntiLink) elAntiLink.checked = Boolean(gs.antiLinkEnabled);
+  if (elAntiToxic) elAntiToxic.checked = Boolean(gs.antiToxicEnabled);
+}
+
+document.getElementById('btnSaveGroupSettings')?.addEventListener('click', async () => {
+  const msgEl = document.getElementById('groupSaveMsg');
+  const payload = {
+    groupSettings: {
+      welcomeEnabled: document.getElementById('toggleWelcome')?.checked ?? true,
+      welcomeText: document.getElementById('welcomeTextInput')?.value || '',
+      leaveEnabled: document.getElementById('toggleLeave')?.checked ?? true,
+      leaveText: document.getElementById('leaveTextInput')?.value || '',
+      antiLinkEnabled: document.getElementById('toggleAntiLink')?.checked ?? false,
+      antiToxicEnabled: document.getElementById('toggleAntiToxic')?.checked ?? false,
+    }
+  };
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok && msgEl) {
+      msgEl.textContent = '✔ Pengaturan Grup & Welcome berhasil disimpan!';
+      setTimeout(() => { msgEl.textContent = ''; }, 3000);
+    }
+  } catch {}
+});
+
+
+
+
+// Custom Command Builder & Prompt AI
+let currentCustomCommands = [];
+let currentIsVip = false;
+let currentBotPrefix = ".";
+let editingCustomIndex = -1;
+
+const AI_BUILDER_PROMPT = [
+  "Saya menggunakan engine WhatsApp Bot LopClient yang memiliki fitur Custom Command berbasis JavaScript async.",
+  "Tugasmu:",
+  "1. Pertama, sapa saya dengan kalimat: \"Fitur apa tuan? Jelaskan detail fitur atau tampilan pesan yang tuan inginkan.\" dan tunggu saya menjelaskan fitur yang saya mau.",
+  "2. Setelah saya menjelaskan fiturnya, buatkan HANYA potongan kode JavaScript murni (tanpa pembungkus function/module.exports dan tanpa teks penjelasan panjang) agar bisa langsung saya tempel ke kotak Custom Command.",
+  "",
+  "Aturan variabel yang tersedia di dalam kotak Custom Command:",
+  "- reply(teks) : mengirim balasan teks ke chat/grup.",
+  "- sendImage(urlAtauBuffer, caption) : mengirim gambar beserta caption.",
+  "- text : string argumen yang diketik user setelah command.",
+  "- args : array kata argumen setelah command.",
+  "- usedPrefix : prefix aktif bot (misal '.').",
+  "- fetch : tersedia untuk mengambil data dari API publik jika dibutuhkan.",
+  "",
+  "Mulai sekarang dengan menanyakan: \"Fitur apa tuan? Jelaskan.\""
+].join("\n");
+
+document.getElementById("btnCopyAiPrompt")?.addEventListener("click", async () => {
+  const msgEl = document.getElementById("copyPromptMsg");
+  try {
+    await navigator.clipboard.writeText(AI_BUILDER_PROMPT);
+    if (msgEl) msgEl.textContent = "✔ Prompt AI berhasil disalin! Silakan tempel ke ChatGPT / Gemini.";
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = AI_BUILDER_PROMPT;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    if (msgEl) msgEl.textContent = "✔ Prompt AI berhasil disalin!";
+  }
+  setTimeout(() => { if (msgEl) msgEl.textContent = ""; }, 4000);
+});
+
+function renderCustomCommandsUI() {
+  const maxLimit = currentIsVip ? 4 : 2;
+  const badge = document.getElementById("customQuotaBadge");
+  const pfxPreview = document.getElementById("customPrefixPreview");
+  const listEl = document.getElementById("customCommandsList");
+
+  if (badge) badge.textContent = currentCustomCommands.length + " / " + maxLimit + " (" + (currentIsVip ? "VIP" : "FREE") + ")";
+  if (pfxPreview) pfxPreview.textContent = currentBotPrefix + "listharga";
+  if (!listEl) return;
+
+  if (currentCustomCommands.length === 0) {
+    listEl.innerHTML = "<p class=\"pairing-desc\" style=\"margin:0;\">Belum ada custom command yang dibuat.</p>";
+    return;
+  }
+
+  listEl.innerHTML = currentCustomCommands.map((cmd, idx) =>
+    "<div class=\"control-row\" style=\"align-items:flex-start; gap:10px;\">" +
+      "<div class=\"control-info\">" +
+        "<strong>" + currentBotPrefix + cmd.name + "</strong>" +
+        "<span>" + (cmd.desc || "Custom Command") + "</span>" +
+      "</div>" +
+      "<div style=\"display:flex; gap:6px;\">" +
+        "<button type=\"button\" class=\"seg-btn\" onclick=\"editCustomCmd(" + idx + ")\">Edit</button>" +
+        "<button type=\"button\" class=\"seg-btn\" style=\"color:#ef4444;\" onclick=\"deleteCustomCmd(" + idx + ")\">Hapus</button>" +
+      "</div>" +
+    "</div>"
+  ).join("");
+}
+
+window.editCustomCmd = function(idx) {
+  const item = currentCustomCommands[idx];
+  if (!item) return;
+  editingCustomIndex = idx;
+  document.getElementById("customFormTitle").textContent = "Edit Command: " + currentBotPrefix + item.name;
+  document.getElementById("customCmdName").value = item.name;
+  document.getElementById("customCmdDesc").value = item.desc || "";
+  document.getElementById("customCmdCode").value = item.code || "";
+  document.getElementById("btnCancelEditCustom")?.classList.remove("hidden");
+  document.getElementById("customCmdName")?.focus();
+};
+
+document.getElementById("btnCancelEditCustom")?.addEventListener("click", () => {
+  editingCustomIndex = -1;
+  document.getElementById("customFormTitle").textContent = "Tambah Custom Command Baru";
+  document.getElementById("customCmdName").value = "";
+  document.getElementById("customCmdDesc").value = "";
+  document.getElementById("customCmdCode").value = "";
+  document.getElementById("btnCancelEditCustom")?.classList.add("hidden");
+});
+
+window.deleteCustomCmd = async function(idx) {
+  const nextList = currentCustomCommands.filter((_, i) => i !== idx);
+  const res = await fetch("/api/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ customCommands: nextList }),
+  });
+  if (res.ok) {
+    const data = await res.json();
+    currentCustomCommands = data.config?.customCommands || nextList;
+    renderCustomCommandsUI();
+  }
+};
+
+document.getElementById("btnSaveCustomCmd")?.addEventListener("click", async () => {
+  const msgEl = document.getElementById("customCmdMsg");
+  const maxLimit = currentIsVip ? 4 : 2;
+  const rawName = document.getElementById("customCmdName")?.value || "";
+  const cleanName = rawName.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24);
+  const desc = document.getElementById("customCmdDesc")?.value.trim() || "Custom Command";
+  const codeVal = document.getElementById("customCmdCode")?.value.trim() || "";
+
+  if (!cleanName || !codeVal) {
+    if (msgEl) {
+      msgEl.style.color = "#ef4444";
+      msgEl.textContent = "⚠️ Nama command dan kode JavaScript wajib diisi!";
+    }
+    return;
+  }
+
+  if (editingCustomIndex === -1 && currentCustomCommands.length >= maxLimit) {
+    if (msgEl) {
+      msgEl.style.color = "#ef4444";
+      msgEl.textContent = "🔒 Kuota penuh! Paket " + (currentIsVip ? "VIP" : "FREE") + " maksimal " + maxLimit + " custom command.";
+    }
+    return;
+  }
+
+  const nextList = [...currentCustomCommands];
+  if (editingCustomIndex >= 0) {
+    nextList[editingCustomIndex] = { name: cleanName, desc, code: codeVal, enabled: true };
+  } else {
+    const existIdx = nextList.findIndex((c) => c.name === cleanName);
+    if (existIdx >= 0) nextList[existIdx] = { name: cleanName, desc, code: codeVal, enabled: true };
+    else nextList.push({ name: cleanName, desc, code: codeVal, enabled: true });
+  }
+
+  const res = await fetch("/api/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ customCommands: nextList }),
+  });
+
+  if (res.ok) {
+    const data = await res.json();
+    currentCustomCommands = Array.isArray(data.config?.customCommands) ? data.config.customCommands : nextList;
+    editingCustomIndex = -1;
+    document.getElementById("customFormTitle").textContent = "Tambah Custom Command Baru";
+    document.getElementById("customCmdName").value = "";
+    document.getElementById("customCmdDesc").value = "";
+    document.getElementById("customCmdCode").value = "";
+    document.getElementById("btnCancelEditCustom")?.classList.add("hidden");
+    renderCustomCommandsUI();
+    if (msgEl) {
+      msgEl.style.color = "#22c55e";
+      msgEl.textContent = "✔ Custom command " + currentBotPrefix + cleanName + " tersimpan di bawah!";
+      setTimeout(() => { msgEl.textContent = ""; }, 4000);
+    }
+  } else if (msgEl) {
+    msgEl.style.color = "#ef4444";
+    msgEl.textContent = "❌ Gagal menyimpan custom command (HTTP " + res.status + ")";
+  }
+});
+
+renderCustomCommandsUI();

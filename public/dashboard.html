@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LopClient Dashboard</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="icon-btn" id="btnMenu" aria-label="Buka Menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <h1 id="pageTitle">LopClient</h1>
+    <span class="status-pill" id="statusPill">● Checking...</span>
+  </header>
+
+  <div class="overlay" id="overlay"></div>
+
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-wrap">
+        <div class="brand-badge">LC</div>
+        <div>
+          <strong>LopClient Panel</strong>
+          <span id="botStatusText">Status: memeriksa...</span>
+        </div>
+      </div>
+      <button class="icon-btn" id="btnCloseSidebar" aria-label="Tutup Menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="nav-section">Navigasi</div>
+    <a class="nav-item active" data-page="dashboard">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a class="nav-item" data-page="features">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+      <span>Fitur</span>
+    </a>
+    <a class="nav-item" data-page="group">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Grup & Welcome</span>
+    </a>
+    <a class="nav-item" data-page="custom">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      <span>Custom Command</span>
+    </a>
+
+    <div class="sidebar-footer">
+      <div class="footer-card">
+        <span>Tema Tampilan</span>
+        <button class="theme-toggle" id="btnTheme">Gelap</button>
+      </div>
+      <button class="btn-logout" id="btnLogout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Keluar (Logout)</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- HALAMAN 1: DASHBOARD -->
+  <main class="main" id="page-dashboard">
+    <section class="card pairing-box" id="pairingCard">
+      <div class="card-header">
+        <span class="card-title">Hubungkan WhatsApp</span>
+      </div>
+      <p class="pairing-desc">Masukkan nomor WhatsApp bot menggunakan kode negara (contoh: 628123456789).</p>
+      <input type="text" id="phoneInput" placeholder="628123456789" inputmode="numeric">
+      <button class="btn-primary" id="btnPair">Dapatkan Pairing Code</button>
+      <div class="code-display" id="codeDisplay"></div>
+    </section>
+
+    <section class="card hidden" id="connectedCard">
+      <div class="card-header">
+        <span class="card-title">Perangkat Terhubung</span>
+        <span class="badge-online">Online</span>
+      </div>
+      <div class="identity-row">
+        <div>
+          <div class="bot-name" id="botName">WhatsApp Bot</div>
+          <div class="bot-phone" id="botPhone">+62...</div>
+        </div>
+      </div>
+      <div class="license-bar">
+        <span id="licenseIdLabel">Masa Aktif Lisensi</span>
+        <span class="license-badge" id="licenseRemaining">-</span>
+      </div>
+      <button class="btn-danger-outline" id="btnUnpair">Putuskan Koneksi (Ganti Nomor)</button>
+    </section>
+
+    
+    <section class="card" id="tierCard">
+      <div class="card-header">
+        <span class="card-title">Status Paket Lisensi</span>
+        <span class="license-badge" id="tierBadge">FREE</span>
+      </div>
+      <p class="pairing-desc" id="tierDesc">Anda menggunakan paket Gratis. Aktifkan Token VIP untuk membuka seluruh fitur eksklusif.</p>
+      <div id="vipActivateBox">
+        <div class="inline-input-row">
+          <input type="text" id="vipTokenInput" placeholder="Masukkan Token VIP..." autocomplete="off">
+          <button class="btn-primary btn-compact" id="btnActivateVip">Aktifkan</button>
+        </div>
+        <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+          <span id="vipActivateMsg" style="color:var(--muted);">Belum punya Token VIP?</span>
+          <a href="https://wa.me/6285878041275?text=Halo%20Admin%2C%20saya%20ingin%20upgrade%20LopClient%20ke%20VIP" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600; text-decoration:none;">Beli Token VIP →</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="metrics-grid">
+      <div class="metric-tile">
+        <div class="metric-label">Command Dijalankan</div>
+        <div class="metric-value" id="statCommands">0</div>
+        <div class="metric-sub">Sesi aktif</div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-label">Chat & Grup Aktif</div>
+        <div class="metric-value" id="statChats">0</div>
+        <div class="metric-sub">Interaksi unik</div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-label">Uptime Bot</div>
+        <div class="metric-value" id="statUptime">0m 0d</div>
+        <div class="metric-sub">Koneksi WA</div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-label">Memori Termux</div>
+        <div class="metric-value" id="statRam">0 MB</div>
+        <div class="metric-sub" id="statRamSub">RSS Node.js</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Kontrol Cepat Bot</span>
+      </div>
+
+      <div class="control-row">
+        <div class="control-info">
+          <strong>Mode Akses</strong>
+          <span>Public semua user / Self hanya bot</span>
+        </div>
+        <div class="segmented" id="modeGroup">
+          <button type="button" class="seg-btn active" data-val="public">Public</button>
+          <button type="button" class="seg-btn" data-val="self">Self</button>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="control-info">
+          <strong>Prefix Perintah</strong>
+          <span>Awalan untuk memanggil bot</span>
+        </div>
+        <div class="segmented" id="prefixGroup">
+          <button type="button" class="seg-btn active" data-val=".">.</button>
+          <button type="button" class="seg-btn" data-val="!">!</button>
+          <button type="button" class="seg-btn" data-val="#">#</button>
+          <button type="button" class="seg-btn" data-val="">None</button>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="control-info">
+          <strong>Auto-Read Chat</strong>
+          <span>Tandai pesan masuk sebagai terbaca</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleAutoRead">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <!-- HALAMAN 2: FITUR -->
+  <main class="main hidden" id="page-features">
+    <div class="vip-promo-banner" id="featuresVipBanner">
+      <p><strong>Mode Gratis (FREE):</strong> Fitur bertanda <b>VIP 🔒</b> terkunci sampai Token VIP diaktifkan.</p>
+      <button type="button" id="btnGoActivateVip">Upgrade</button>
+    </div>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Identitas Bot Custom</span>
+      </div>
+      <p class="pairing-desc">Nama ini hanya muncul pada menu pengguna (<code id="userMenuHint">.menu</code>) dan tidak mengubah identitas engine <strong>/menu</strong>.</p>
+      <div class="inline-input-row">
+        <input type="text" id="customBotNameInput" placeholder="Contoh: MyBot" maxlength="32">
+        <button class="btn-primary btn-compact" id="btnSaveBotName">Simpan</button>
+      </div>
+      <div class="save-hint" id="botNameSaveMsg"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Utilitas Bawaan (/menu)</span>
+        <span class="badge-locked">Terkunci</span>
+      </div>
+      <p class="pairing-desc">Fitur utilitas utama bawaan <strong>LopClient</strong> yang selalu aktif secara permanen.</p>
+      <div id="lockedUtilsList"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Fun & Fitur Tambahan (<span id="funMenuBadge">.menu</span>)</span>
+      </div>
+      <p class="pairing-desc">Aktifkan atau nonaktifkan fitur. Fitur yang mati otomatis disembunyikan dari daftar menu.</p>
+      <div id="funCommandsList"></div>
+    </section>
+  </main>
+
+  
+  <!-- HALAMAN 3: GRUP & WELCOME -->
+  <main class="main hidden" id="page-group">
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Pesan Selamat Datang (Welcome)</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleWelcome">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <p class="pairing-desc">Otomatis menyapa member baru yang masuk ke grup. Variabel: <code>{user}</code>, <code>{group}</code>, <code>{desc}</code>, <code>{count}</code>.</p>
+      <textarea id="welcomeTextInput" rows="3" style="width:100%; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-family:inherit; resize:vertical;"></textarea>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Pesan Keluar / Kick (Leave)</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleLeave">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <p class="pairing-desc">Otomatis mengirim pesan saat member keluar atau dikeluarkan dari grup.</p>
+      <textarea id="leaveTextInput" rows="3" style="width:100%; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-family:inherit; resize:vertical;"></textarea>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Moderasi Grup Otomatis</span>
+      </div>
+      <div class="control-row">
+        <div class="control-info">
+          <strong>Anti-Link Global</strong>
+          <span>Hapus otomatis link grup WA / tautan asing (non-admin)</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleAntiLink">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="control-row">
+        <div class="control-info">
+          <strong>Anti-Toxic Global</strong>
+          <span>Hapus otomatis pesan berisi kata kasar di grup</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleAntiToxic">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div style="margin-top:14px;">
+        <button class="btn-primary" id="btnSaveGroupSettings">Simpan Pengaturan Grup & Welcome</button>
+        <div class="save-hint" id="groupSaveMsg" style="margin-top:8px;"></div>
+      </div>
+    </section>
+  </main>
+
+  
+  <!-- HALAMAN 4: CUSTOM COMMAND -->
+  <main class="main hidden" id="page-custom">
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Bantuan AI Pembuat Kode</span>
+        <span class="badge-online">Gratis • Bebas</span>
+      </div>
+      <p class="pairing-desc">Salin prompt di bawah ini sepuasnya lalu tempel ke <strong>AI Chat manapun</strong> (ChatGPT, Gemini, Claude, DeepSeek, dll.). Setelah AI bertanya, jelaskan fitur yang kamu inginkan (misal: <em>"buatkan .listharga topup game"</em>), lalu tempel hasil kodenya di bawah.</p>
+      <button type="button" class="btn-primary" id="btnCopyAiPrompt" style="background:rgba(168, 85, 247, 0.14); border:1px solid rgba(168, 85, 247, 0.45); color:var(--text);">📋 Salin Prompt untuk AI</button>
+      <div class="save-hint" id="copyPromptMsg" style="margin-top:8px;"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title" id="customFormTitle">Tambah Custom Command Baru</span>
+      </div>
+      <p class="pairing-desc">Ketik nama command tanpa awalan titik (contoh: <code>listharga</code>). Nanti dipanggil di WhatsApp dengan <code id="customPrefixPreview">.listharga</code>.</p>
+      
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label for="customCmdName" style="display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px;">Nama Command (tanpa titik)</label>
+          <input type="text" id="customCmdName" placeholder="Contoh: listharga" maxlength="24" style="width:100%; box-sizing:border-box; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.28); color:inherit; font-size:14px; outline:none;">
+        </div>
+
+        <div>
+          <label for="customCmdDesc" style="display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px;">Deskripsi Singkat</label>
+          <input type="text" id="customCmdDesc" placeholder="Contoh: Menampilkan daftar harga produk" maxlength="60" style="width:100%; box-sizing:border-box; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.28); color:inherit; font-size:14px; outline:none;">
+        </div>
+
+        <div>
+          <label for="customCmdCode" style="display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px;">Kode JavaScript dari AI</label>
+          <textarea id="customCmdCode" rows="7" placeholder="// Tempel kode JavaScript hasil dari AI di sini...&#10;await reply('🔥 *LIST HARGA* 🔥\n1. Paket A = Rp10.000');" style="width:100%; box-sizing:border-box; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.35); color:inherit; font-family:monospace; font-size:12.5px; line-height:1.5; resize:vertical; outline:none;"></textarea>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:2px;">
+          <button type="button" class="btn-primary" id="btnSaveCustomCmd">Simpan Custom Command</button>
+          <button type="button" class="btn-danger-outline hidden" id="btnCancelEditCustom" style="margin-top:0;">Batal</button>
+        </div>
+        <div class="save-hint" id="customCmdMsg"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Daftar Custom Command Kamu</span>
+        <span class="license-badge" id="customQuotaBadge">0 / 2 (FREE)</span>
+      </div>
+      <p class="pairing-desc">Slot custom command aktif: maksimal <strong>2 command</strong> untuk paket <strong>FREE</strong> dan <strong>4 command</strong> untuk paket <strong>VIP</strong>.</p>
+      <div id="customCommandsList"></div>
+    </section>
+  </main>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

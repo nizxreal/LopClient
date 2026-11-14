@@ -1,0 +1,13 @@
+{
+  "name": "wa-bot-dashboard",
+  "version": "1.0.0",
+  "engines": { "node": ">=20.0.0 <21.0.0" },
+  "scripts": { "start": "node server/server.js" },
+  "dependencies": {
+    "@whiskeysockets/baileys": "latest",
+    "pino": "^9.0.0",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "bytenode": "^1.5.7"
+  }
+}
