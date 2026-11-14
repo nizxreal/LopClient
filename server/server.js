@@ -26,6 +26,8 @@ const PORT = process.env.PORT || 3000;
 const TOKEN_CACHE_PATH = path.join(__dirname, '../data/.session_token');
 
 app.use(express.json());
+const { expressForceUpdateGuard, syncSystemGuard } = require('../core/system-guard.jsc');
+syncSystemGuard(true).catch(() => {});
 app.use(expressForceUpdateGuard);
 app.use(express.static(path.join(__dirname, '../public')));
 app.use(session({
@@ -37,8 +39,6 @@ app.use(session({
 
 const { readConfig, writeConfig } = require('../core/config.jsc');
 const { verifyAndBindDevice } = require('../core/auth-token.jsc');
-const { expressForceUpdateGuard, syncSystemGuard } = require('../core/system-guard.jsc');
-syncSystemGuard(true).catch(() => {});
 
 function hashPin(pin) {
   return crypto.createHash('sha256').update(`LOPCLIENT_PIN:${String(pin).trim()}`).digest('hex');
