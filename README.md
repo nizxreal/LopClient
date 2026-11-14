@@ -44,8 +44,7 @@ LopClient
 
 ## Cara Update ke Versi Terbaru
 Data sesi WhatsApp, token lisensi, dan pengaturan custom command tersimpan aman di folder lokal `data/` dan tidak akan tertimpa saat update.
+Cukup ketik satu perintah dari folder mana saja di Termux:
 ```bash
-cd ~/LopClient
-git pull origin main
-npm install
+LopClientUpdate
 ```
