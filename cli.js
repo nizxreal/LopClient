@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('bytenode');
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
@@ -467,6 +468,10 @@ function openMainMenu() {
 }
 
 (async () => {
+  try {
+    const { runStartupAutoUpdate } = require('./core/system-guard.jsc');
+    await runStartupAutoUpdate(ROOT_DIR);
+  } catch {}
   process.stdout.write(TERM.enterAlt);
   startBackgroundServer();
   await showLoadingScreen();
