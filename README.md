@@ -22,14 +22,21 @@ pkg install nodejs-lts git ffmpeg -y
 git clone [https://github.com/nizxreal/LopClient.git](https://github.com/nizxreal/LopClient.git)
 cd LopClient
 ```
-3. Install seluruh package & jalankan CLI:
+3. Install seluruh package Node.js:
 ```bash
 npm install
-node cli.js
+```
+4. Pasang perintah pintasan global agar bisa dipanggil dari folder mana saja tanpa perlu `cd`:
+```bash
+printf "#!/data/data/com.termux/files/usr/bin/sh\nexec node \"\$HOME/LopClient/cli.js\" \"\$@\"\n" > "$PREFIX/bin/LopClient" && chmod +x "$PREFIX/bin/LopClient"
+```
+5. Jalankan LopClient dari folder mana saja cukup dengan mengetik:
+```bash
+LopClient
 ```
 
 ## Cara Menghubungkan WhatsApp
-1. Jalankan `node cli.js` lalu buka browser Chrome ke `http://localhost:3000`.
+1. Ketik `LopClient` di Termux lalu buka browser Chrome ke `http://localhost:3000`.
 2. Buat PIN keamanan login dashboard pada halaman awal.
 3. Masukkan nomor WhatsApp bot (contoh: `628123456789`) lalu klik **Dapatkan Pairing Code**.
 4. Buka WhatsApp di HP -> Perangkat Tertaut -> Tautkan dengan nomor telepon saja, lalu masukkan kode pairing.
