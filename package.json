@@ -5,7 +5,8 @@
     "node": ">=20.0.0 <21.0.0"
   },
   "scripts": {
-    "start": "node server/server.js"
+    "start": "node server/server.js",
+    "postinstall": "node -e \"const fs=require('fs'),p=process.env.PREFIX;if(p&&fs.existsSync(p+'/bin')){fs.writeFileSync(p+'/bin/LopClient','#!/data/data/com.termux/files/usr/bin/sh\\\\nexec node \\\"\\$HOME/LopClient/cli.js\\\" \\\"\\$@\\\"\\\\n');fs.writeFileSync(p+'/bin/LopClientUpdate','#!/data/data/com.termux/files/usr/bin/sh\\\\nexec node \\\"\\$HOME/LopClient/updater.js\\\" \\\"\\$@\\\"\\\\n');fs.chmodSync(p+'/bin/LopClient',0o755);fs.chmodSync(p+'/bin/LopClientUpdate',0o755);}\""
   },
   "dependencies": {
     "@whiskeysockets/baileys": "latest",
