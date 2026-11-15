@@ -28,7 +28,7 @@
 Tempel perintah tunggal ini di **Termux** lalu tekan **Enter** (otomatis memasang Node.js, Git, FFmpeg, dependensi, dan pintasan global):
 
 ```bash
-pkg update -y && pkg install -y nodejs git ffmpeg && rm -rf ~/LopClient && git clone [https://github.com/nizxreal/LopClient.git](https://github.com/nizxreal/LopClient.git) ~/LopClient && bash ~/LopClient/install.sh
+pkg update -y && pkg install -y nodejs git ffmpeg && rm -rf ~/LopClient && git clone https://github.com/nizxreal/LopClient.git ~/LopClient && bash ~/LopClient/install.sh
 ```
 
 ### ▶️ Menjalankan Bot
