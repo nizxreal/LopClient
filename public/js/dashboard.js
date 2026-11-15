@@ -233,35 +233,8 @@ function renderFeatures(features, cfg, isVip) {
   }).join('');
 
   // 2. Fun Commands (.menu)
-  const funContainer = document.getElementById('funCommandsList');
-  funContainer.innerHTML = (features.funCommands || []).map(f => {
-    const isVipFeature = f.tier === 'vip';
-    const isLocked = isVipFeature && !lastIsVip;
-    const isChecked = !isLocked && cfg.funFeatures?.[f.name] !== false;
-    const vipTag = isVipFeature
-      ? `<span class="badge-vip ${lastIsVip ? 'unlocked' : ''}" style="margin-left:6px;">${lastIsVip ? 'VIP ✓' : 'VIP 🔒'}</span>`
-      : '';
-
-    return `
-      <div class="control-row">
-        <div class="control-info">
-          <div><span class="cmd-pill">${pfx}${f.name}</span>${vipTag}</div>
-          <span>${f.desc}</span>
-        </div>
-        <label class="switch ${isLocked ? 'locked' : ''}" title="${isLocked ? 'Aktifkan Token VIP untuk membuka' : ''}">
-          <input type="checkbox" data-fun="${f.name}" ${isChecked ? 'checked' : ''} ${isLocked ? 'disabled' : ''}>
-          <span class="slider"></span>
-        </label>
-      </div>
-    `;
-  }).join('');
-
-  funContainer.querySelectorAll('input[data-fun]:not(:disabled)').forEach(inp => {
-    inp.addEventListener('change', (e) => {
-      const fname = e.target.dataset.fun;
-      updateConfig({ funFeatures: { [fname]: e.target.checked } });
-    });
-  });
+  window._lastDashCfg = cfg;
+  renderCategorizedCommands();
 }
 
 function renderConfig(cfg) {
@@ -531,3 +504,83 @@ document.getElementById("btnSaveCustomCmd")?.addEventListener("click", async () 
 });
 
 renderCustomCommandsUI();
+
+
+function renderCategorizedCommands() {
+  const cfg = window._lastDashCfg || {};
+  const pfx = cfg.prefix || "";
+  const query = (document.getElementById("featureSearchInput")?.value || "").toLowerCase().trim();
+  const catFilter = document.getElementById("featureCatFilter")?.value || "all";
+
+  const allCmds = (lastFeatures?.funCommands || []).filter(f => {
+    const cat = (f.category || "fun").toLowerCase();
+    if (catFilter !== "all" && cat !== catFilter) return false;
+    if (query && !f.name.toLowerCase().includes(query) && !(f.desc || "").toLowerCase().includes(query)) return false;
+    return true;
+  });
+
+  const coreCmds = allCmds.filter(f => (f.category || "fun").toLowerCase() !== "fun");
+  const funOnlyCmds = allCmds.filter(f => (f.category || "fun").toLowerCase() === "fun");
+
+  const coreBadge = document.getElementById("coreCountBadge");
+  const funBadge = document.getElementById("funCountBadge");
+  if (coreBadge) coreBadge.textContent = coreCmds.length + " fitur";
+  if (funBadge) funBadge.textContent = funOnlyCmds.length + " fitur";
+
+  const buildRow = (f, showCat) => {
+    const isVipFeature = f.tier === "vip";
+    const isLocked = isVipFeature && !lastIsVip;
+    const isChecked = !isLocked && cfg.funFeatures?.[f.name] !== false;
+    const vipTag = isVipFeature
+      ? `<span class="badge-vip ${lastIsVip ? "unlocked" : ""}" style="margin-left:6px;">${lastIsVip ? "VIP ✓" : "VIP 🔒"}</span>`
+      : "";
+    const catTag = showCat
+      ? `<span style="font-size:10px; padding:2px 6px; border-radius:6px; background:var(--accent-soft); border:1px solid var(--accent-border); color:var(--text); margin-left:6px; text-transform:uppercase;">${f.category || "tools"}</span>`
+      : "";
+
+    return `
+      <div class="control-row">
+        <div class="control-info">
+          <div><span class="cmd-pill">${pfx}${f.name}</span>${catTag}${vipTag}</div>
+          <span>${f.desc}</span>
+        </div>
+        <label class="switch ${isLocked ? "locked" : ""}" title="${isLocked ? "Aktifkan Token VIP untuk membuka" : ""}">
+          <input type="checkbox" data-fun="${f.name}" ${isChecked ? "checked" : ""} ${isLocked ? "disabled" : ""}>
+          <span class="slider"></span>
+        </label>
+      </div>
+    `;
+  };
+
+  const bindSwitches = (container) => {
+    if (!container) return;
+    container.querySelectorAll("input[data-fun]:not(:disabled)").forEach(inp => {
+      inp.addEventListener("change", (e) => {
+        const fname = e.target.dataset.fun;
+        if (!window._lastDashCfg.funFeatures) window._lastDashCfg.funFeatures = {};
+        window._lastDashCfg.funFeatures[fname] = e.target.checked;
+        updateConfig({ funFeatures: { [fname]: e.target.checked } });
+      });
+    });
+  };
+
+  const coreContainer = document.getElementById("coreCommandsList");
+  const funContainer = document.getElementById("funCommandsList");
+
+  if (coreContainer) {
+    coreContainer.innerHTML = coreCmds.length
+      ? coreCmds.map(f => buildRow(f, true)).join("")
+      : `<p class="pairing-desc" style="margin:0;">Tidak ada fitur utama yang cocok dengan filter.</p>`;
+    bindSwitches(coreContainer);
+  }
+
+  if (funContainer) {
+    funContainer.innerHTML = funOnlyCmds.length
+      ? funOnlyCmds.map(f => buildRow(f, false)).join("")
+      : `<p class="pairing-desc" style="margin:0;">Tidak ada fitur fun yang cocok dengan filter.</p>`;
+    bindSwitches(funContainer);
+  }
+}
+
+document.getElementById("featureSearchInput")?.addEventListener("input", renderCategorizedCommands);
+document.getElementById("featureCatFilter")?.addEventListener("change", renderCategorizedCommands);

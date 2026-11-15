@@ -204,12 +204,41 @@
     </section>
 
     <section class="card">
-      <div class="card-header">
-        <span class="card-title">Fun & Fitur Tambahan (<span id="funMenuBadge">.menu</span>)</span>
-      </div>
-      <p class="pairing-desc">Aktifkan atau nonaktifkan fitur. Fitur yang mati otomatis disembunyikan dari daftar menu.</p>
-      <div id="funCommandsList"></div>
-    </section>
+        <div class="card-header">
+          <span class="card-title">Cari & Filter Fitur (<span id="funMenuBadge">.menu</span>)</span>
+        </div>
+        <p class="pairing-desc">Fitur yang dimatikan otomatis disembunyikan dari daftar menu pengguna.</p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+          <input type="text" id="featureSearchInput" placeholder="Cari command (misal: tt, sticker, hidetag)..." style="flex:1; min-width:170px; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:13px; outline:none;">
+          <select id="featureCatFilter" style="padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:13px; outline:none;">
+            <option value="all">Semua Kategori</option>
+            <option value="utama">Utilitas Unggulan</option>
+            <option value="downloader">Downloader</option>
+            <option value="group">Moderasi Grup</option>
+            <option value="maker">Sticker & Maker</option>
+            <option value="tools">Tools & Search</option>
+            <option value="fun">Fun & Mini-Game</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <span class="card-title">Fitur Utama, Media & Tools</span>
+          <span class="badge-online" id="coreCountBadge">0</span>
+        </div>
+        <p class="pairing-desc">Downloader sosial media, stiker/maker, moderasi grup, dan tools harian.</p>
+        <div id="coreCommandsList"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <span class="card-title">Fun & Mini-Game</span>
+          <span class="badge-online" id="funCountBadge">0</span>
+        </div>
+        <p class="pairing-desc">Permainan interaktif, leaderboard, dan hiburan grup (dapat dimatikan jika bot khusus toko/kerja).</p>
+        <div id="funCommandsList"></div>
+      </section>
   </main>
 
   
