@@ -422,23 +422,6 @@ const AI_BUILDER_PROMPT = [
   "Mulai sekarang dengan menanyakan: \"Fitur apa tuan? Jelaskan.\""
 ].join("\n");
 
-document.getElementById("btnCopyAiPrompt")?.addEventListener("click", async () => {
-  const msgEl = document.getElementById("copyPromptMsg");
-  try {
-    await navigator.clipboard.writeText(AI_BUILDER_PROMPT);
-    if (msgEl) msgEl.textContent = "✔ Prompt AI berhasil disalin! Silakan tempel ke ChatGPT / Gemini.";
-  } catch {
-    const ta = document.createElement("textarea");
-    ta.value = AI_BUILDER_PROMPT;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    if (msgEl) msgEl.textContent = "✔ Prompt AI berhasil disalin!";
-  }
-  setTimeout(() => { if (msgEl) msgEl.textContent = ""; }, 4000);
-});
-
 function renderCustomCommandsUI() {
   const maxLimit = currentIsVip ? 4 : 2;
   const badge = document.getElementById("customQuotaBadge");
