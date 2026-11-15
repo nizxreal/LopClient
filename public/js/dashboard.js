@@ -519,8 +519,8 @@ function renderCategorizedCommands() {
     return true;
   });
 
-  const coreCmds = allCmds.filter(f => (f.category || "fun").toLowerCase() !== "fun");
-  const funOnlyCmds = allCmds.filter(f => (f.category || "fun").toLowerCase() === "fun");
+  const coreCmds = allCmds.filter(f => !["fun", "anime"].includes((f.category || "anime").toLowerCase()));
+  const funOnlyCmds = allCmds.filter(f => ["fun", "anime"].includes((f.category || "anime").toLowerCase()));
 
   const coreBadge = document.getElementById("coreCountBadge");
   const funBadge = document.getElementById("funCountBadge");
