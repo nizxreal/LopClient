@@ -31,6 +31,8 @@ Tempel perintah tunggal ini di **Termux** lalu tekan **Enter** (otomatis memasan
 pkg update -y && pkg install -y nodejs git ffmpeg && rm -rf ~/LopClient && git clone https://github.com/nizxreal/LopClient.git ~/LopClient && bash ~/LopClient/install.sh
 ```
 
+> 💡 **Catatan:** Jika muncul error *Failed to fetch / Network is unreachable* saat `pkg install`, jalankan `termux-change-repo` terlebih dahulu untuk mengganti server mirror Termux.
+
 ### ▶️ Menjalankan Bot
 Cukup **1x instalasi** di atas. Selanjutnya, dari folder mana saja kamu cukup ketik:
 
