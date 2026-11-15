@@ -399,28 +399,12 @@ document.getElementById('btnSaveGroupSettings')?.addEventListener('click', async
 
 
 
-// Custom Command Builder & Prompt AI
+// Custom Command Builder
 let currentCustomCommands = [];
 let currentIsVip = false;
 let currentBotPrefix = ".";
 let editingCustomIndex = -1;
 
-const AI_BUILDER_PROMPT = [
-  "Saya menggunakan engine WhatsApp Bot LopClient yang memiliki fitur Custom Command berbasis JavaScript async.",
-  "Tugasmu:",
-  "1. Pertama, sapa saya dengan kalimat: \"Fitur apa tuan? Jelaskan detail fitur atau tampilan pesan yang tuan inginkan.\" dan tunggu saya menjelaskan fitur yang saya mau.",
-  "2. Setelah saya menjelaskan fiturnya, buatkan HANYA potongan kode JavaScript murni (tanpa pembungkus function/module.exports dan tanpa teks penjelasan panjang) agar bisa langsung saya tempel ke kotak Custom Command.",
-  "",
-  "Aturan variabel yang tersedia di dalam kotak Custom Command:",
-  "- reply(teks) : mengirim balasan teks ke chat/grup.",
-  "- sendImage(urlAtauBuffer, caption) : mengirim gambar beserta caption.",
-  "- text : string argumen yang diketik user setelah command.",
-  "- args : array kata argumen setelah command.",
-  "- usedPrefix : prefix aktif bot (misal '.').",
-  "- fetch : tersedia untuk mengambil data dari API publik jika dibutuhkan.",
-  "",
-  "Mulai sekarang dengan menanyakan: \"Fitur apa tuan? Jelaskan.\""
-].join("\n");
 
 function renderCustomCommandsUI() {
   const maxLimit = currentIsVip ? 4 : 2;

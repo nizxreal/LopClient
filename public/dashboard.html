@@ -63,6 +63,216 @@
 
   <!-- HALAMAN 1: DASHBOARD -->
   <main class="main" id="page-dashboard">
+    <section class="card pairing-box" id="pairingCard">
+      <div class="card-header">
+        <span class="card-title">Hubungkan WhatsApp</span>
+      </div>
+      <p class="pairing-desc">Masukkan nomor WhatsApp bot menggunakan kode negara (contoh: 628123456789).</p>
+      <input type="text" id="phoneInput" placeholder="628123456789" inputmode="numeric">
+      <button class="btn-primary" id="btnPair">Dapatkan Pairing Code</button>
+      <div class="code-display" id="codeDisplay"></div>
+    </section>
+
+    <section class="card hidden" id="connectedCard">
+      <div class="card-header">
+        <span class="card-title">Perangkat Terhubung</span>
+        <span class="badge-online">Online</span>
+      </div>
+      <div class="identity-row">
+        <div>
+          <div class="bot-name" id="botName">WhatsApp Bot</div>
+          <div class="bot-phone" id="botPhone">+62...</div>
+        </div>
+      </div>
+      <div class="license-bar">
+        <span id="licenseIdLabel">Masa Aktif Lisensi</span>
+        <span class="license-badge" id="licenseRemaining">-</span>
+      </div>
+      <button class="btn-danger-outline" id="btnUnpair">Putuskan Koneksi (Ganti Nomor)</button>
+    </section>
+
+    
+    <section class="card" id="tierCard">
+      <div class="card-header">
+        <span class="card-title">Status Paket Lisensi</span>
+        <span class="license-badge" id="tierBadge">FREE</span>
+      </div>
+      <p class="pairing-desc" id="tierDesc">Anda menggunakan paket Gratis. Aktifkan Token VIP untuk membuka seluruh fitur eksklusif.</p>
+      <div id="vipActivateBox">
+        <div class="inline-input-row">
+          <input type="text" id="vipTokenInput" placeholder="Masukkan Token VIP..." autocomplete="off">
+          <button class="btn-primary btn-compact" id="btnActivateVip">Aktifkan</button>
+        </div>
+        <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+          <span id="vipActivateMsg" style="color:var(--muted);">Belum punya Token VIP?</span>
+          <a href="https://wa.me/6285878041275?text=Halo%20Admin%2C%20saya%20ingin%20upgrade%20LopClient%20ke%20VIP" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600; text-decoration:none;">Beli Token VIP →</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="metrics-grid">
+      <div class="metric-tile">
+        <div class="metric-label">Command Dijalankan</div>
+        <div class="metric-value" id="statCommands">0</div>
+        <div class="metric-sub">Sesi aktif</div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-label">Chat & Grup Aktif</div>
+        <div class="metric-value" id="statChats">0</div>
+        <div class="metric-sub">Interaksi unik</div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-label">Uptime Bot</div>
+        <div class="metric-value" id="statUptime">0m 0d</div>
+        <div class="metric-sub">Koneksi WA</div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-label">Memori Termux</div>
+        <div class="metric-value" id="statRam">0 MB</div>
+        <div class="metric-sub" id="statRamSub">RSS Node.js</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Kontrol Cepat Bot</span>
+      </div>
+
+      <div class="control-row">
+        <div class="control-info">
+          <strong>Mode Akses</strong>
+          <span>Public semua user / Self hanya bot</span>
+        </div>
+        <div class="segmented" id="modeGroup">
+          <button type="button" class="seg-btn active" data-val="public">Public</button>
+          <button type="button" class="seg-btn" data-val="self">Self</button>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="control-info">
+          <strong>Prefix Perintah</strong>
+          <span>Awalan untuk memanggil bot</span>
+        </div>
+        <div class="segmented" id="prefixGroup">
+          <button type="button" class="seg-btn active" data-val=".">.</button>
+          <button type="button" class="seg-btn" data-val="!">!</button>
+          <button type="button" class="seg-btn" data-val="#">#</button>
+          <button type="button" class="seg-btn" data-val="">None</button>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="control-info">
+          <strong>Auto-Read Chat</strong>
+          <span>Tandai pesan masuk sebagai terbaca</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleAutoRead">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <!-- HALAMAN 2: FITUR -->
+  <main class="main hidden" id="page-features">
+    <div class="vip-promo-banner" id="featuresVipBanner">
+      <p><strong>Mode Gratis (FREE):</strong> Fitur bertanda <b>VIP 🔒</b> terkunci sampai Token VIP diaktifkan.</p>
+      <button type="button" id="btnGoActivateVip">Upgrade</button>
+    </div>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Identitas Bot Custom</span>
+      </div>
+      <p class="pairing-desc">Nama ini hanya muncul pada menu pengguna (<code id="userMenuHint">.menu</code>) dan tidak mengubah identitas engine <strong>/menu</strong>.</p>
+      <div class="inline-input-row">
+        <input type="text" id="customBotNameInput" placeholder="Contoh: MyBot" maxlength="32">
+        <button class="btn-primary btn-compact" id="btnSaveBotName">Simpan</button>
+      </div>
+      <div class="save-hint" id="botNameSaveMsg"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Utilitas Bawaan (/menu)</span>
+        <span class="badge-locked">Terkunci</span>
+      </div>
+      <p class="pairing-desc">Fitur utilitas utama bawaan <strong>LopClient</strong> yang selalu aktif secara permanen.</p>
+      <div id="lockedUtilsList"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Fun & Fitur Tambahan (<span id="funMenuBadge">.menu</span>)</span>
+      </div>
+      <p class="pairing-desc">Aktifkan atau nonaktifkan fitur. Fitur yang mati otomatis disembunyikan dari daftar menu.</p>
+      <div id="funCommandsList"></div>
+    </section>
+  </main>
+
+  
+  <!-- HALAMAN 3: GRUP & WELCOME -->
+  <main class="main hidden" id="page-group">
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Pesan Selamat Datang (Welcome)</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleWelcome">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <p class="pairing-desc">Otomatis menyapa member baru yang masuk ke grup. Variabel: <code>{user}</code>, <code>{group}</code>, <code>{desc}</code>, <code>{count}</code>.</p>
+      <textarea id="welcomeTextInput" rows="3" style="width:100%; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-family:inherit; resize:vertical;"></textarea>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Pesan Keluar / Kick (Leave)</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleLeave">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <p class="pairing-desc">Otomatis mengirim pesan saat member keluar atau dikeluarkan dari grup.</p>
+      <textarea id="leaveTextInput" rows="3" style="width:100%; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-family:inherit; resize:vertical;"></textarea>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Moderasi Grup Otomatis</span>
+      </div>
+      <div class="control-row">
+        <div class="control-info">
+          <strong>Anti-Link Global</strong>
+          <span>Hapus otomatis link grup WA / tautan asing (non-admin)</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleAntiLink">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="control-row">
+        <div class="control-info">
+          <strong>Anti-Toxic Global</strong>
+          <span>Hapus otomatis pesan berisi kata kasar di grup</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleAntiToxic">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div style="margin-top:14px;">
+        <button class="btn-primary" id="btnSaveGroupSettings">Simpan Pengaturan Grup & Welcome</button>
+        <div class="save-hint" id="groupSaveMsg" style="margin-top:8px;"></div>
+      </div>
+    </section>
+  </main>
+
+  
+  <!-- HALAMAN 4: CUSTOM COMMAND -->
+  <main class="main hidden" id="page-custom">
 
     <section class="card">
       <div class="card-header">
