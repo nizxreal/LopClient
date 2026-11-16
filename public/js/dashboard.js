@@ -244,6 +244,9 @@ function renderConfig(cfg) {
     if (qdi && !qdi.dataset.edited) qdi.value = cfg.queueSettings.delayMs ?? 1500;
     if (qmi && !qmi.dataset.edited) qmi.value = cfg.queueSettings.maxQueueSize ?? 25;
   }
+  if (typeof renderBlacklistSection === 'function') {
+    renderBlacklistSection(cfg);
+  }
 
 }
 
@@ -633,3 +636,152 @@ document.getElementById('btnSaveQueueSettings')?.addEventListener('click', async
     setTimeout(() => { msg.textContent = ''; }, 3500);
   }
 });
+
+
+// Blacklist Grup & User Handlers
+let cachedJoinedGroups = [];
+
+function showBlacklistMsg(text) {
+  const el = document.getElementById('blacklistSaveMsg');
+  if (!el) return;
+  el.textContent = text;
+  setTimeout(() => { el.textContent = ''; }, 3000);
+}
+
+function escapeHtmlSafe(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function populateBlacklistGroupSelect(cfg) {
+  const sel = document.getElementById('blacklistGroupSelect');
+  if (!sel) return;
+  const blIds = new Set((cfg?.blacklistedGroups || []).map((g) => g.id));
+  const available = cachedJoinedGroups.filter((g) => !blIds.has(g.id));
+
+  if (!cachedJoinedGroups.length) {
+    sel.innerHTML = '<option value="">-- Bot belum terhubung / tidak ada grup --</option>';
+    return;
+  }
+  if (!available.length) {
+    sel.innerHTML = '<option value="">-- Semua grup sudah masuk blacklist --</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">-- Pilih grup yang ingin di-blacklist --</option>' +
+    available.map((g) => `<option value="${escapeHtmlSafe(g.id)}" data-name="${escapeHtmlSafe(g.name)}">${escapeHtmlSafe(g.name)} (${g.participantsCount} member)</option>`).join('');
+}
+
+async function loadJoinedGroupsForBlacklist(showToast = false) {
+  try {
+    const res = await fetch('/api/groups');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.groups)) {
+      cachedJoinedGroups = data.groups;
+      populateBlacklistGroupSelect(window._lastDashCfg || {});
+      if (showToast) showBlacklistMsg(`✓ Daftar grup diperbarui (${cachedJoinedGroups.length} grup ditemukan).`);
+    }
+  } catch {}
+}
+
+function renderBlacklistSection(cfg) {
+  window._lastDashCfg = cfg;
+  const blGroups = Array.isArray(cfg.blacklistedGroups) ? cfg.blacklistedGroups : [];
+  const blUsers = Array.isArray(cfg.blacklistedUsers) ? cfg.blacklistedUsers : [];
+
+  const badge = document.getElementById('blacklistCountBadge');
+  if (badge) badge.textContent = `${blGroups.length + blUsers.length} Diblokir`;
+
+  populateBlacklistGroupSelect(cfg);
+
+  const gList = document.getElementById('blacklistedGroupsList');
+  if (gList) {
+    if (!blGroups.length) {
+      gList.innerHTML = '<div style="font-size:12px; color:var(--muted); padding:6px 2px;">Belum ada grup yang di-blacklist.</div>';
+    } else {
+      gList.innerHTML = blGroups.map((g) => `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface);">
+          <div style="min-width:0;">
+            <div style="font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtmlSafe(g.name)}</div>
+            <div style="font-size:11px; color:var(--muted);">${escapeHtmlSafe(g.id)}</div>
+          </div>
+          <button type="button" class="btn-danger-outline btn-remove-bl-group" data-id="${escapeHtmlSafe(g.id)}" style="margin:0; padding:5px 10px; font-size:11px; flex-shrink:0;">Hapus</button>
+        </div>
+      `).join('');
+
+      gList.querySelectorAll('.btn-remove-bl-group').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          const next = (window._lastDashCfg?.blacklistedGroups || []).filter((item) => item.id !== id);
+          await updateConfig({ blacklistedGroups: next });
+          showBlacklistMsg('✓ Grup dihapus dari blacklist.');
+        });
+      });
+    }
+  }
+
+  const uList = document.getElementById('blacklistedUsersList');
+  if (uList) {
+    if (!blUsers.length) {
+      uList.innerHTML = '<div style="font-size:12px; color:var(--muted); padding:6px 2px;">Belum ada nomor user yang di-blacklist.</div>';
+    } else {
+      uList.innerHTML = blUsers.map((num) => `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface);">
+          <div style="font-size:13px; font-weight:600; color:var(--text);">+${escapeHtmlSafe(num)}</div>
+          <button type="button" class="btn-danger-outline btn-remove-bl-user" data-num="${escapeHtmlSafe(num)}" style="margin:0; padding:5px 10px; font-size:11px; flex-shrink:0;">Hapus</button>
+        </div>
+      `).join('');
+
+      uList.querySelectorAll('.btn-remove-bl-user').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const num = btn.dataset.num;
+          const next = (window._lastDashCfg?.blacklistedUsers || []).filter((item) => item !== num);
+          await updateConfig({ blacklistedUsers: next });
+          showBlacklistMsg(`✓ Nomor +${num} dihapus dari blacklist.`);
+        });
+      });
+    }
+  }
+}
+
+document.getElementById('btnRefreshBlacklistGroups')?.addEventListener('click', () => {
+  loadJoinedGroupsForBlacklist(true);
+});
+
+document.querySelector('.nav-item[data-page="settings"]')?.addEventListener('click', () => {
+  loadJoinedGroupsForBlacklist(false);
+});
+
+document.getElementById('btnAddBlacklistGroup')?.addEventListener('click', async () => {
+  const sel = document.getElementById('blacklistGroupSelect');
+  const id = (sel?.value || '').trim();
+  if (!id) return;
+  const opt = sel.options[sel.selectedIndex];
+  const name = opt?.dataset?.name || id;
+  const current = Array.isArray(window._lastDashCfg?.blacklistedGroups) ? window._lastDashCfg.blacklistedGroups : [];
+  if (current.some((g) => g.id === id)) return;
+  await updateConfig({ blacklistedGroups: [...current, { id, name }] });
+  showBlacklistMsg(`✓ Grup "${name}" berhasil di-blacklist.`);
+});
+
+document.getElementById('btnAddBlacklistUser')?.addEventListener('click', async () => {
+  const inp = document.getElementById('blacklistUserInput');
+  let num = String(inp?.value || '').replace(/\D/g, '');
+  if (num.startsWith('08')) num = '62' + num.slice(1);
+  if (num.length < 8 || num.length > 16) {
+    showBlacklistMsg('⚠️ Masukkan nomor HP yang valid (contoh: 6281234567890).');
+    return;
+  }
+  const current = Array.isArray(window._lastDashCfg?.blacklistedUsers) ? window._lastDashCfg.blacklistedUsers : [];
+  if (current.includes(num)) {
+    showBlacklistMsg('ℹ️ Nomor tersebut sudah ada di dalam blacklist.');
+    return;
+  }
+  await updateConfig({ blacklistedUsers: [...current, num] });
+  if (inp) inp.value = '';
+  showBlacklistMsg(`✓ Nomor +${num} berhasil di-blacklist.`);
+});
+
+loadJoinedGroupsForBlacklist(false);

@@ -406,6 +406,41 @@
 
       <div class="save-hint" id="queueSaveMsg" style="margin-top:10px;"></div>
     </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Blacklist Grup &amp; User</span>
+        <span class="badge-online" id="blacklistCountBadge">0 Diblokir</span>
+      </div>
+      <p class="pairing-desc">Bot akan mengabaikan seluruh pesan dan perintah dari grup maupun nomor HP pengguna yang masuk ke dalam daftar blacklist lokal kamu.</p>
+
+      <!-- BLACKLIST GRUP -->
+      <div style="margin-top:12px;">
+        <label for="blacklistGroupSelect" style="display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px;">Blacklist Grup (Pilih dari Daftar Grup Bot)</label>
+        <div class="inline-input-row">
+          <select id="blacklistGroupSelect" style="flex:1; min-width:0; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:13px; outline:none;">
+            <option value="">-- Memuat daftar grup bot... --</option>
+          </select>
+          <button type="button" class="seg-btn" id="btnRefreshBlacklistGroups" title="Muat Ulang Daftar Grup" style="padding:10px 12px; border-radius:10px; border:1px solid var(--border);">↻</button>
+          <button type="button" class="btn-primary btn-compact" id="btnAddBlacklistGroup">Blacklist</button>
+        </div>
+        <div id="blacklistedGroupsList" style="display:flex; flex-direction:column; gap:6px; margin-top:10px;"></div>
+      </div>
+
+      <hr style="border:none; border-top:1px solid var(--border); margin:18px 0;">
+
+      <!-- BLACKLIST USER -->
+      <div>
+        <label for="blacklistUserInput" style="display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px;">Blacklist User (Nomor HP)</label>
+        <div class="inline-input-row">
+          <input type="text" id="blacklistUserInput" placeholder="Contoh: 6281234567890 atau 0812..." maxlength="20">
+          <button type="button" class="btn-primary btn-compact" id="btnAddBlacklistUser">Blacklist</button>
+        </div>
+        <div id="blacklistedUsersList" style="display:flex; flex-direction:column; gap:6px; margin-top:10px;"></div>
+      </div>
+
+      <div class="save-hint" id="blacklistSaveMsg" style="margin-top:10px;"></div>
+    </section>
   </main>
 
   <script src="/js/dashboard.js?v=1794826590812"></script>
