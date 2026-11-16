@@ -1,42 +1,30 @@
-<div align="center">
-
 # 🤖 LopClient
-> **Unduh Termux (F-Droid):** [https://f-droid.org/en/packages/com.termux/](https://f-droid.org/en/packages/com.termux/) *(Gunakan versi F-Droid, bukan Play Store)*
 
-**WhatsApp Bot Engine & Web Dashboard Ringan untuk Termux**
-
-[![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Platform](https://img.shields.io/badge/Platform-Termux%20%7C%20Linux-000000?style=flat-square&logo=linux&logoColor=white)](https://termux.dev/)
-[![Core](https://img.shields.io/badge/Engine-Baileys%20%2B%20V8%20Bytecode-0088CC?style=flat-square)](#)
-
-*Pasang sekali jalan, kontrol penuh lewat browser HP, dan tautkan WhatsApp dengan Pairing Code tanpa scan QR.*
-
-</div>
+Bot WhatsApp modular berbasis Node.js & Baileys yang ringan untuk Termux, dilengkapi Web Dashboard lokal, kompilasi V8 bytecode (`.jsc`), serta pembersihan sesi 401 otomatis agar koneksi tetap stabil.
 
 ---
 
-## ⚡ Kenapa LopClient?
+## 📋 Panduan Instalasi (Step-by-Step)
 
-- 🌐 **Web Dashboard (`localhost:3000/dashboard`)** — Tautkan WA via **Pairing Code 8 digit**, ganti mode **Public / Self**, ubah prefix, dan pantau RAM Termux secara *real-time*.
-- 🛠️ **Custom Command Builder** — Buat perintah sendiri (`.listharga`, `.payment`, `.rules`, dll.) langsung dari browser tanpa edit kode.
-- 🛡️ **Moderasi Grup & Hiburan Lengkap** — *Welcome/Leave*, *Anti-Link*, *Anti-Toxic*, `.hidetag`, `.kick`, stiker otomatis, *brat*, downloader, AI, hingga mini-game & leaderboard (`.top`, `.rank`).
-- 📊 **Sistem Dual-Menu & Monitor Server** — `.menu` untuk daftar fitur interaktif, `/menu` untuk status lisensi *engine*, dan `.ping` untuk cek latensi, suhu/CPU, serta RAM perangkat.
-- 🔒 **Core Terproteksi & Auto-Recovery** — Modul inti dikompilasi ke **V8 Bytecode (`.jsc`)** dengan pembersihan sesi `401` otomatis agar koneksi tetap stabil.
+### Step 1 — Unduh Termux (F-Droid)
+Unduh dan pasang aplikasi **Termux** versi resmi melalui F-Droid *(hindari versi Google Play Store karena sudah usang)*:
+* 🔗 **Link Unduhan:** [https://f-droid.org/en/packages/com.termux/](https://f-droid.org/en/packages/com.termux/)
 
 ---
 
-## 📲 Instalasi 1 Perintah (Termux)
-
-Tempel perintah tunggal ini di **Termux** lalu tekan **Enter** (otomatis memasang Node.js, Git, FFmpeg, dependensi, dan pintasan global):
+### Step 2 — Instalasi Otomatis (1 Perintah)
+Buka aplikasi Termux, lalu tempel perintah berikut dan tekan **Enter** untuk memasang Node.js, Git, FFmpeg, dependensi bot, serta pintasan global secara otomatis:
 
 ```bash
 pkg update -y && pkg install -y nodejs git ffmpeg && rm -rf ~/LopClient && git clone https://github.com/nizxreal/LopClient.git ~/LopClient && bash ~/LopClient/install.sh
 ```
 
-> 💡 **Catatan:** Jika muncul error *Failed to fetch / Network is unreachable* saat `pkg install`, jalankan `termux-change-repo` terlebih dahulu untuk mengganti server mirror Termux.
+> 💡 **Catatan:** Jika muncul error `Failed to fetch` atau `Network is unreachable` saat proses `pkg install`, jalankan perintah `termux-change-repo` terlebih dahulu untuk mengganti server mirror Termux.
 
-### ▶️ Menjalankan Bot
-Cukup **1x instalasi** di atas. Selanjutnya, dari folder mana saja kamu cukup ketik:
+---
+
+### Step 3 — Menjalankan Bot
+Instalasi di atas cukup dilakukan **1 kali**. Selanjutnya, dari direktori mana saja di Termux kamu cukup menjalankan:
 
 ```bash
 LopClient
@@ -44,8 +32,7 @@ LopClient
 
 ---
 
-## 🚀 Cara Menghubungkan WhatsApp
-
+### Step 4 — Menghubungkan WhatsApp
 1. Ketik `LopClient` di Termux hingga server aktif di `http://localhost:3000`.
 2. Buka **Chrome** di HP lalu akses **`http://localhost:3000/dashboard`**.
 3. Masukkan nomor WA bot dengan kode negara tanpa `+` (contoh: `6281234567890`) lalu klik **Hubungkan**.
