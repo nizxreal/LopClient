@@ -103,6 +103,21 @@ app.post('/api/logout', (req, res) => {
 
 // Endpoint Pairing & Status khusus CLI lokal (127.0.0.1)
 app.post('/api/cli/pairing', async (req, res) => {
+  try {
+    const credsPath = path.join(__dirname, '../data/auth/creds.json');
+    if (fs.existsSync(credsPath)) {
+      const creds = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
+      const existingNum = String(creds?.me?.id || '').split('@')[0].split(':')[0];
+      if (existingNum) {
+        return res.json({
+          success: false,
+          alreadyPaired: true,
+          phoneNumber: existingNum,
+          error: `Sudah terpair dengan nomor +${existingNum}`
+        });
+      }
+    }
+  } catch {}
   const ip = req.ip || req.socket?.remoteAddress || '';
   if (!ip.includes('127.0.0.1') && !ip.includes('::1')) {
     return res.status(403).json({ success: false, error: 'Hanya akses lokal CLI' });

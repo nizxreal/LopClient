@@ -211,7 +211,7 @@ function getProcessRamFast(pid) {
   return '-';
 }
 
-function getWaAccountStatus() {
+function getPairedPhoneNumber() {
   const credsCandidates = [
     path.join(DATA_DIR, 'auth', 'creds.json'),
     path.resolve(ROOT_DIR, '../data/auth/creds.json')
@@ -222,11 +222,17 @@ function getWaAccountStatus() {
         const creds = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
         const rawId = creds?.me?.id || '';
         const phone = rawId.split('@')[0].split(':')[0];
-        if (phone) {
-          return `${C.green}● Terhubung${C.reset} ${C.dim}(+${phone})${C.reset}`;
-        }
+        if (phone) return phone;
       } catch {}
     }
+  }
+  return null;
+}
+
+function getWaAccountStatus() {
+  const phone = getPairedPhoneNumber();
+  if (phone) {
+    return `${C.green}● Terhubung${C.reset} ${C.dim}(+${phone})${C.reset}`;
   }
   return `${C.yellow}○ Belum Pairing${C.reset}`;
 }
@@ -503,6 +509,12 @@ async function waitForLocalServerReady(maxWaitMs = 5000) {
 }
 
 async function runCliPairingFlow() {
+  const pairedPhone = getPairedPhoneNumber();
+  if (pairedPhone) {
+    setNotice(`✓ Sudah terpair dengan nomor +${pairedPhone}`);
+    return openMainMenu();
+  }
+
   const { cols, rows } = getScreenSize();
   const W = Math.min(44, Math.max(38, cols - 2));
   const inner = W - 2;
@@ -553,6 +565,10 @@ async function runCliPairingFlow() {
       body: JSON.stringify({ phoneNumber })
     });
     const data = await resp.json();
+    if (data.alreadyPaired && data.phoneNumber) {
+      setNotice(`✓ Sudah terpair dengan nomor +${data.phoneNumber}`);
+      return openMainMenu();
+    }
     if (!resp.ok || !data.success || !data.pairingCode) {
       throw new Error(data.error || 'Gagal mendapatkan kode pairing');
     }
