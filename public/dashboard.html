@@ -155,6 +155,18 @@
 
       <div class="control-row">
         <div class="control-info">
+          <strong>Jangkauan Chat</strong>
+          <span>Semua chat / hanya pribadi / hanya grup</span>
+        </div>
+        <div class="segmented" id="chatScopeGroup">
+          <button type="button" class="seg-btn active" data-val="all">Semua</button>
+          <button type="button" class="seg-btn" data-val="private">Pribadi</button>
+          <button type="button" class="seg-btn" data-val="group">Grup</button>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="control-info">
           <strong>Prefix Perintah</strong>
           <span>Awalan untuk memanggil bot</span>
         </div>
@@ -409,22 +421,56 @@
 
     <section class="card">
       <div class="card-header">
-        <span class="card-title">Blacklist Grup &amp; User</span>
-        <span class="badge-online" id="blacklistCountBadge">0 Diblokir</span>
+        <span class="card-title">Filter Grup (Blacklist / Whitelist) &amp; User</span>
+        <span class="badge-online" id="blacklistCountBadge">0 Aktif</span>
       </div>
-      <p class="pairing-desc">Bot akan mengabaikan seluruh pesan dan perintah dari grup maupun nomor HP pengguna yang masuk ke dalam daftar blacklist lokal kamu.</p>
+      <p class="pairing-desc">Atur grup dan nomor HP pengguna yang diblokir atau diizinkan secara lokal di perangkat kamu.</p>
 
-      <!-- BLACKLIST GRUP -->
-      <div style="margin-top:12px;">
-        <label for="blacklistGroupSelect" style="display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px;">Blacklist Grup (Pilih dari Daftar Grup Bot)</label>
-        <div class="inline-input-row">
-          <select id="blacklistGroupSelect" style="flex:1; min-width:0; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:13px; outline:none;">
-            <option value="">-- Memuat daftar grup bot... --</option>
-          </select>
-          <button type="button" class="seg-btn" id="btnRefreshBlacklistGroups" title="Muat Ulang Daftar Grup" style="padding:10px 12px; border-radius:10px; border:1px solid var(--border);">↻</button>
-          <button type="button" class="btn-primary btn-compact" id="btnAddBlacklistGroup">Blacklist</button>
+      <!-- MODE FILTER GRUP -->
+      <div class="control-row" style="margin-top:8px;">
+        <div class="control-info">
+          <strong>Mode Filter Grup</strong>
+          <span id="groupFilterModeDesc">Blacklist: blokir grup tertentu / Whitelist: hanya grup terpilih</span>
         </div>
-        <div id="blacklistedGroupsList" style="display:flex; flex-direction:column; gap:6px; margin-top:10px;"></div>
+        <div class="segmented" id="groupFilterModeGroup">
+          <button type="button" class="seg-btn active" data-val="blacklist">Blacklist</button>
+          <button type="button" class="seg-btn" data-val="whitelist">Whitelist</button>
+        </div>
+      </div>
+
+      <!-- PANEL BLACKLIST GRUP -->
+      <div id="blacklistGroupPanel" style="margin-top:14px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+          <label for="blacklistGroupSelect" style="font-size:12px; font-weight:600; color:var(--muted);">Blacklist Grup (Diblokir)</label>
+          <div style="display:flex; gap:6px;">
+            <button type="button" class="seg-btn" id="btnBlacklistAllGroups" style="padding:4px 9px; font-size:11px; border-radius:7px; border:1px solid var(--border);">Blacklist Semua</button>
+            <button type="button" class="seg-btn" id="btnClearBlacklistGroups" style="padding:4px 9px; font-size:11px; border-radius:7px; border:1px solid rgba(239,68,68,0.4); color:#f87171;">Reset</button>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <select id="blacklistGroupSelect" style="flex:1; min-width:0; height:40px; padding:0 10px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:13px; outline:none;">
+            <option value="">-- Pilih grup --</option>
+          </select>
+          <button type="button" class="seg-btn" id="btnRefreshBlacklistGroups" title="Muat Ulang Daftar Grup" style="width:40px; height:40px; padding:0; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; border:1px solid var(--border);">↻</button>
+          <button type="button" class="btn-primary btn-compact" id="btnAddBlacklistGroup" style="height:40px; padding:0 14px; flex-shrink:0;">Tambah</button>
+        </div>
+        <div id="blacklistedGroupsList" style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"></div>
+      </div>
+
+      <!-- PANEL WHITELIST GRUP -->
+      <div id="whitelistGroupPanel" class="hidden" style="margin-top:14px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+          <label for="whitelistGroupSelect" style="font-size:12px; font-weight:600; color:var(--muted);">Whitelist Grup (Hanya Grup Ini yang Diizinkan)</label>
+          <button type="button" class="seg-btn" id="btnClearWhitelistGroups" style="padding:4px 9px; font-size:11px; border-radius:7px; border:1px solid rgba(239,68,68,0.4); color:#f87171;">Reset</button>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <select id="whitelistGroupSelect" style="flex:1; min-width:0; height:40px; padding:0 10px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:13px; outline:none;">
+            <option value="">-- Pilih grup --</option>
+          </select>
+          <button type="button" class="seg-btn" id="btnRefreshWhitelistGroups" title="Muat Ulang Daftar Grup" style="width:40px; height:40px; padding:0; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; border:1px solid var(--border);">↻</button>
+          <button type="button" class="btn-primary btn-compact" id="btnAddWhitelistGroup" style="height:40px; padding:0 14px; flex-shrink:0;">Izinkan</button>
+        </div>
+        <div id="whitelistedGroupsList" style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"></div>
       </div>
 
       <hr style="border:none; border-top:1px solid var(--border); margin:18px 0;">
@@ -432,11 +478,11 @@
       <!-- BLACKLIST USER -->
       <div>
         <label for="blacklistUserInput" style="display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px;">Blacklist User (Nomor HP)</label>
-        <div class="inline-input-row">
-          <input type="text" id="blacklistUserInput" placeholder="Contoh: 6281234567890 atau 0812..." maxlength="20">
-          <button type="button" class="btn-primary btn-compact" id="btnAddBlacklistUser">Blacklist</button>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="blacklistUserInput" inputmode="numeric" placeholder="6281234567890 atau 0812..." maxlength="20" style="flex:1; min-width:0; height:40px; padding:0 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:13px; outline:none;">
+          <button type="button" class="btn-primary btn-compact" id="btnAddBlacklistUser" style="height:40px; padding:0 14px; flex-shrink:0;">Blacklist</button>
         </div>
-        <div id="blacklistedUsersList" style="display:flex; flex-direction:column; gap:6px; margin-top:10px;"></div>
+        <div id="blacklistedUsersList" style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"></div>
       </div>
 
       <div class="save-hint" id="blacklistSaveMsg" style="margin-top:10px;"></div>

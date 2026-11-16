@@ -174,6 +174,10 @@ document.querySelectorAll('#modeGroup .seg-btn').forEach(btn => {
   btn.addEventListener('click', () => updateConfig({ mode: btn.dataset.val }));
 });
 
+document.querySelectorAll('#chatScopeGroup .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => updateConfig({ chatScope: btn.dataset.val }));
+});
+
 document.querySelectorAll('#prefixGroup .seg-btn').forEach(btn => {
   btn.addEventListener('click', () => updateConfig({ prefix: btn.dataset.val }));
 });
@@ -224,6 +228,10 @@ function renderFeatures(features, cfg, isVip) {
 function renderConfig(cfg) {
   document.querySelectorAll('#modeGroup .seg-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.val === cfg.mode);
+  });
+  const activeScope = cfg.chatScope || 'all';
+  document.querySelectorAll('#chatScopeGroup .seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === activeScope);
   });
   document.querySelectorAll('#prefixGroup .seg-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.val === cfg.prefix);
@@ -638,14 +646,14 @@ document.getElementById('btnSaveQueueSettings')?.addEventListener('click', async
 });
 
 
-// Blacklist Grup & User Handlers
+// Blacklist & Whitelist Grup + User Handlers
 let cachedJoinedGroups = [];
 
 function showBlacklistMsg(text) {
   const el = document.getElementById('blacklistSaveMsg');
   if (!el) return;
   el.textContent = text;
-  setTimeout(() => { el.textContent = ''; }, 3000);
+  setTimeout(() => { el.textContent = ''; }, 3200);
 }
 
 function escapeHtmlSafe(str) {
@@ -656,22 +664,36 @@ function escapeHtmlSafe(str) {
     .replace(/"/g, '&quot;');
 }
 
-function populateBlacklistGroupSelect(cfg) {
-  const sel = document.getElementById('blacklistGroupSelect');
-  if (!sel) return;
-  const blIds = new Set((cfg?.blacklistedGroups || []).map((g) => g.id));
-  const available = cachedJoinedGroups.filter((g) => !blIds.has(g.id));
+function populateGroupDropdowns(cfg) {
+  const blSel = document.getElementById('blacklistGroupSelect');
+  const wlSel = document.getElementById('whitelistGroupSelect');
 
-  if (!cachedJoinedGroups.length) {
-    sel.innerHTML = '<option value="">-- Bot belum terhubung / tidak ada grup --</option>';
-    return;
+  const blIds = new Set((cfg?.blacklistedGroups || []).map((g) => g.id));
+  const wlIds = new Set((cfg?.whitelistedGroups || []).map((g) => g.id));
+
+  if (blSel) {
+    const availBl = cachedJoinedGroups.filter((g) => !blIds.has(g.id));
+    if (!cachedJoinedGroups.length) {
+      blSel.innerHTML = '<option value="">-- Bot belum terhubung / tidak ada grup --</option>';
+    } else if (!availBl.length) {
+      blSel.innerHTML = '<option value="">-- Semua grup sudah masuk blacklist --</option>';
+    } else {
+      blSel.innerHTML = '<option value="">-- Pilih grup yang di-blacklist --</option>' +
+        availBl.map((g) => `<option value="${escapeHtmlSafe(g.id)}" data-name="${escapeHtmlSafe(g.name)}">${escapeHtmlSafe(g.name)} (${g.participantsCount} member)</option>`).join('');
+    }
   }
-  if (!available.length) {
-    sel.innerHTML = '<option value="">-- Semua grup sudah masuk blacklist --</option>';
-    return;
+
+  if (wlSel) {
+    const availWl = cachedJoinedGroups.filter((g) => !wlIds.has(g.id));
+    if (!cachedJoinedGroups.length) {
+      wlSel.innerHTML = '<option value="">-- Bot belum terhubung / tidak ada grup --</option>';
+    } else if (!availWl.length) {
+      wlSel.innerHTML = '<option value="">-- Semua grup sudah di-whitelist --</option>';
+    } else {
+      wlSel.innerHTML = '<option value="">-- Pilih grup yang diizinkan --</option>' +
+        availWl.map((g) => `<option value="${escapeHtmlSafe(g.id)}" data-name="${escapeHtmlSafe(g.name)}">${escapeHtmlSafe(g.name)} (${g.participantsCount} member)</option>`).join('');
+    }
   }
-  sel.innerHTML = '<option value="">-- Pilih grup yang ingin di-blacklist --</option>' +
-    available.map((g) => `<option value="${escapeHtmlSafe(g.id)}" data-name="${escapeHtmlSafe(g.name)}">${escapeHtmlSafe(g.name)} (${g.participantsCount} member)</option>`).join('');
 }
 
 async function loadJoinedGroupsForBlacklist(showToast = false) {
@@ -680,7 +702,7 @@ async function loadJoinedGroupsForBlacklist(showToast = false) {
     const data = await res.json();
     if (data.success && Array.isArray(data.groups)) {
       cachedJoinedGroups = data.groups;
-      populateBlacklistGroupSelect(window._lastDashCfg || {});
+      populateGroupDropdowns(window._lastDashCfg || {});
       if (showToast) showBlacklistMsg(`✓ Daftar grup diperbarui (${cachedJoinedGroups.length} grup ditemukan).`);
     }
   } catch {}
@@ -688,26 +710,42 @@ async function loadJoinedGroupsForBlacklist(showToast = false) {
 
 function renderBlacklistSection(cfg) {
   window._lastDashCfg = cfg;
+  const gMode = cfg.groupFilterMode === 'whitelist' ? 'whitelist' : 'blacklist';
   const blGroups = Array.isArray(cfg.blacklistedGroups) ? cfg.blacklistedGroups : [];
+  const wlGroups = Array.isArray(cfg.whitelistedGroups) ? cfg.whitelistedGroups : [];
   const blUsers = Array.isArray(cfg.blacklistedUsers) ? cfg.blacklistedUsers : [];
 
+  document.querySelectorAll('#groupFilterModeGroup .seg-btn').forEach((b) => {
+    b.classList.toggle('active', b.dataset.val === gMode);
+  });
+
+  const blPanel = document.getElementById('blacklistGroupPanel');
+  const wlPanel = document.getElementById('whitelistGroupPanel');
+  if (blPanel) blPanel.classList.toggle('hidden', gMode === 'whitelist');
+  if (wlPanel) wlPanel.classList.toggle('hidden', gMode !== 'whitelist');
+
   const badge = document.getElementById('blacklistCountBadge');
-  if (badge) badge.textContent = `${blGroups.length + blUsers.length} Diblokir`;
+  if (badge) {
+    badge.textContent = gMode === 'whitelist'
+      ? `${wlGroups.length} Whitelist • ${blUsers.length} User`
+      : `${blGroups.length} Grup • ${blUsers.length} User`;
+  }
 
-  populateBlacklistGroupSelect(cfg);
+  populateGroupDropdowns(cfg);
 
+  // Render Blacklist Groups
   const gList = document.getElementById('blacklistedGroupsList');
   if (gList) {
     if (!blGroups.length) {
       gList.innerHTML = '<div style="font-size:12px; color:var(--muted); padding:6px 2px;">Belum ada grup yang di-blacklist.</div>';
     } else {
       gList.innerHTML = blGroups.map((g) => `
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface);">
-          <div style="min-width:0;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface);">
+          <div style="flex:1; min-width:0;">
             <div style="font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtmlSafe(g.name)}</div>
-            <div style="font-size:11px; color:var(--muted);">${escapeHtmlSafe(g.id)}</div>
+            <div style="font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;">${escapeHtmlSafe(g.id)}</div>
           </div>
-          <button type="button" class="btn-danger-outline btn-remove-bl-group" data-id="${escapeHtmlSafe(g.id)}" style="margin:0; padding:5px 10px; font-size:11px; flex-shrink:0;">Hapus</button>
+          <button type="button" class="btn-remove-bl-group" data-id="${escapeHtmlSafe(g.id)}" style="width:auto; margin:0; padding:6px 12px; font-size:11px; font-weight:600; border-radius:8px; border:1px solid rgba(239,68,68,0.45); background:rgba(239,68,68,0.12); color:#f87171; cursor:pointer; flex-shrink:0;">Hapus</button>
         </div>
       `).join('');
 
@@ -722,15 +760,43 @@ function renderBlacklistSection(cfg) {
     }
   }
 
+  // Render Whitelist Groups
+  const wList = document.getElementById('whitelistedGroupsList');
+  if (wList) {
+    if (!wlGroups.length) {
+      wList.innerHTML = '<div style="font-size:12px; color:var(--muted); padding:6px 2px;">Belum ada grup di whitelist (semua grup sementara diblokir).</div>';
+    } else {
+      wList.innerHTML = wlGroups.map((g) => `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:10px; border:1px solid rgba(16,185,129,0.35); background:var(--surface);">
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtmlSafe(g.name)}</div>
+            <div style="font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;">${escapeHtmlSafe(g.id)}</div>
+          </div>
+          <button type="button" class="btn-remove-wl-group" data-id="${escapeHtmlSafe(g.id)}" style="width:auto; margin:0; padding:6px 12px; font-size:11px; font-weight:600; border-radius:8px; border:1px solid rgba(239,68,68,0.45); background:rgba(239,68,68,0.12); color:#f87171; cursor:pointer; flex-shrink:0;">Hapus</button>
+        </div>
+      `).join('');
+
+      wList.querySelectorAll('.btn-remove-wl-group').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          const next = (window._lastDashCfg?.whitelistedGroups || []).filter((item) => item.id !== id);
+          await updateConfig({ whitelistedGroups: next });
+          showBlacklistMsg('✓ Grup dihapus dari whitelist.');
+        });
+      });
+    }
+  }
+
+  // Render Blacklist Users
   const uList = document.getElementById('blacklistedUsersList');
   if (uList) {
     if (!blUsers.length) {
       uList.innerHTML = '<div style="font-size:12px; color:var(--muted); padding:6px 2px;">Belum ada nomor user yang di-blacklist.</div>';
     } else {
       uList.innerHTML = blUsers.map((num) => `
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface);">
-          <div style="font-size:13px; font-weight:600; color:var(--text);">+${escapeHtmlSafe(num)}</div>
-          <button type="button" class="btn-danger-outline btn-remove-bl-user" data-num="${escapeHtmlSafe(num)}" style="margin:0; padding:5px 10px; font-size:11px; flex-shrink:0;">Hapus</button>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface);">
+          <div style="flex:1; min-width:0; font-size:13px; font-weight:600; color:var(--text);">+${escapeHtmlSafe(num)}</div>
+          <button type="button" class="btn-remove-bl-user" data-num="${escapeHtmlSafe(num)}" style="width:auto; margin:0; padding:6px 12px; font-size:11px; font-weight:600; border-radius:8px; border:1px solid rgba(239,68,68,0.45); background:rgba(239,68,68,0.12); color:#f87171; cursor:pointer; flex-shrink:0;">Hapus</button>
         </div>
       `).join('');
 
@@ -746,13 +812,19 @@ function renderBlacklistSection(cfg) {
   }
 }
 
-document.getElementById('btnRefreshBlacklistGroups')?.addEventListener('click', () => {
-  loadJoinedGroupsForBlacklist(true);
+document.querySelectorAll('#groupFilterModeGroup .seg-btn').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    const mode = btn.dataset.val;
+    await updateConfig({ groupFilterMode: mode });
+    showBlacklistMsg(mode === 'whitelist'
+      ? '✓ Mode Whitelist aktif: hanya grup di daftar whitelist yang diizinkan.'
+      : '✓ Mode Blacklist aktif: grup di daftar blacklist diblokir.');
+  });
 });
 
-document.querySelector('.nav-item[data-page="settings"]')?.addEventListener('click', () => {
-  loadJoinedGroupsForBlacklist(false);
-});
+document.getElementById('btnRefreshBlacklistGroups')?.addEventListener('click', () => loadJoinedGroupsForBlacklist(true));
+document.getElementById('btnRefreshWhitelistGroups')?.addEventListener('click', () => loadJoinedGroupsForBlacklist(true));
+document.querySelector('.nav-item[data-page="settings"]')?.addEventListener('click', () => loadJoinedGroupsForBlacklist(false));
 
 document.getElementById('btnAddBlacklistGroup')?.addEventListener('click', async () => {
   const sel = document.getElementById('blacklistGroupSelect');
@@ -763,7 +835,47 @@ document.getElementById('btnAddBlacklistGroup')?.addEventListener('click', async
   const current = Array.isArray(window._lastDashCfg?.blacklistedGroups) ? window._lastDashCfg.blacklistedGroups : [];
   if (current.some((g) => g.id === id)) return;
   await updateConfig({ blacklistedGroups: [...current, { id, name }] });
-  showBlacklistMsg(`✓ Grup "${name}" berhasil di-blacklist.`);
+  showBlacklistMsg(`✓ Grup "${name}" ditambahkan ke blacklist.`);
+});
+
+document.getElementById('btnBlacklistAllGroups')?.addEventListener('click', async () => {
+  if (!cachedJoinedGroups.length) {
+    await loadJoinedGroupsForBlacklist(false);
+  }
+  if (!cachedJoinedGroups.length) {
+    showBlacklistMsg('⚠️ Tidak ada daftar grup yang ditemukan (pastikan bot connected).');
+    return;
+  }
+  const current = Array.isArray(window._lastDashCfg?.blacklistedGroups) ? window._lastDashCfg.blacklistedGroups : [];
+  const map = new Map(current.map((g) => [g.id, g]));
+  for (const g of cachedJoinedGroups) {
+    map.set(g.id, { id: g.id, name: g.name });
+  }
+  const merged = Array.from(map.values());
+  await updateConfig({ blacklistedGroups: merged });
+  showBlacklistMsg(`✓ Semua grup (${merged.length} grup) berhasil dimasukkan ke blacklist.`);
+});
+
+document.getElementById('btnClearBlacklistGroups')?.addEventListener('click', async () => {
+  await updateConfig({ blacklistedGroups: [] });
+  showBlacklistMsg('✓ Daftar blacklist grup dikosongkan.');
+});
+
+document.getElementById('btnAddWhitelistGroup')?.addEventListener('click', async () => {
+  const sel = document.getElementById('whitelistGroupSelect');
+  const id = (sel?.value || '').trim();
+  if (!id) return;
+  const opt = sel.options[sel.selectedIndex];
+  const name = opt?.dataset?.name || id;
+  const current = Array.isArray(window._lastDashCfg?.whitelistedGroups) ? window._lastDashCfg.whitelistedGroups : [];
+  if (current.some((g) => g.id === id)) return;
+  await updateConfig({ whitelistedGroups: [...current, { id, name }] });
+  showBlacklistMsg(`✓ Grup "${name}" ditambahkan ke whitelist.`);
+});
+
+document.getElementById('btnClearWhitelistGroups')?.addEventListener('click', async () => {
+  await updateConfig({ whitelistedGroups: [] });
+  showBlacklistMsg('✓ Daftar whitelist grup dikosongkan.');
 });
 
 document.getElementById('btnAddBlacklistUser')?.addEventListener('click', async () => {
@@ -785,30 +897,3 @@ document.getElementById('btnAddBlacklistUser')?.addEventListener('click', async 
 });
 
 loadJoinedGroupsForBlacklist(false);
-
-
-// Risk Disclaimer Popup Handler
-(function initRiskDisclaimerModal() {
-  const STORAGE_KEY = 'lopclient_hide_risk_modal_v1';
-  const modal = document.getElementById('riskDisclaimerModal');
-  const chkHide = document.getElementById('chkHideRiskModal');
-  const btnAccept = document.getElementById('btnAcceptRiskModal');
-  if (!modal || !btnAccept) return;
-
-  const isHidden = localStorage.getItem(STORAGE_KEY) === '1';
-  if (isHidden) {
-    modal.style.display = 'none';
-    modal.classList.add('hidden');
-  } else {
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
-  }
-
-  btnAccept.addEventListener('click', () => {
-    if (chkHide && chkHide.checked) {
-      localStorage.setItem(STORAGE_KEY, '1');
-    }
-    modal.style.display = 'none';
-    modal.classList.add('hidden');
-  });
-})();
