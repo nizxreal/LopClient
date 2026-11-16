@@ -68,7 +68,7 @@ function gradientText(text) {
     const idx = Math.floor(pos);
     const frac = pos - idx;
     const c1 = stops[idx];
-    const c2 = Math.min(stops.length - 1, idx + 1)];
+    const c2 = stops[Math.min(stops.length - 1, idx + 1)];
     const r = Math.round(c1[0] + (c2[0] - c1[0]) * frac);
     const g = Math.round(c1[1] + (c2[1] - c1[1]) * frac);
     const b = Math.round(c1[2] + (c2[2] - c1[2]) * frac);
