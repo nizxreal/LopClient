@@ -13,6 +13,7 @@
     "pino": "^9.0.0",
     "express": "^4.19.2",
     "express-session": "^1.18.0",
-    "bytenode": "^1.5.7"
+    "bytenode": "^1.5.7",
+    "wa-sticker-formatter": "^4.4.4"
   }
 }
