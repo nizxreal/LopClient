@@ -182,34 +182,17 @@ document.getElementById('toggleAutoRead').addEventListener('change', (e) => {
   updateConfig({ autoRead: e.target.checked });
 });
 
-const customBotNameInput = document.getElementById('customBotNameInput');
-const botNameSaveMsg = document.getElementById('botNameSaveMsg');
-let botNameInitialized = false;
-
-document.getElementById('btnSaveBotName').addEventListener('click', async () => {
-  const val = customBotNameInput.value.trim();
-  if (!val) return;
-  await updateConfig({ botName: val });
-  botNameSaveMsg.textContent = `✓ Nama bot "${val}" berhasil disimpan.`;
-  setTimeout(() => { botNameSaveMsg.textContent = ''; }, 3000);
-});
-
 function renderFeatures(features, cfg, isVip) {
   lastFeatures = features;
   lastIsVip = Boolean(isVip);
 
   const pfx = cfg.prefix || '';
-  document.getElementById('userMenuHint').textContent = `${pfx}menu`;
+  const uHint = document.getElementById('userMenuHint'); if (uHint) uHint.textContent = `${pfx}menu`;
   document.getElementById('funMenuBadge').textContent = `${pfx}menu`;
 
   const promoBanner = document.getElementById('featuresVipBanner');
   if (promoBanner) {
     promoBanner.classList.toggle('hidden', lastIsVip);
-  }
-
-  if (!botNameInitialized && cfg.botName) {
-    customBotNameInput.value = cfg.botName;
-    botNameInitialized = true;
   }
 
   // 1. Utilitas Bawaan (/menu)
@@ -614,8 +597,6 @@ document.getElementById('btnSaveSettingsBotName')?.addEventListener('click', asy
   if (!val) return;
   await updateConfig({ botName: val });
   if (inp) delete inp.dataset.edited;
-  const sideInp = document.getElementById('customBotNameInput');
-  if (sideInp) sideInp.value = val;
   const msg = document.getElementById('settingsBotNameMsg');
   if (msg) {
     msg.textContent = `✓ Nama bot "${val}" berhasil diperbarui.`;
