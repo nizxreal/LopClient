@@ -179,6 +179,22 @@
     </section>
   </main>
 
+
+    <section class="card" id="leaderboardCard">
+      <div class="card-header">
+        <span class="card-title">🏆 Papan Peringkat Game</span>
+        <div class="segmented" id="lbTabGroup">
+          <button type="button" class="seg-btn active" data-lb="global">.topglobal</button>
+          <button type="button" class="seg-btn" data-lb="group">.top (Grup)</button>
+        </div>
+      </div>
+      <p class="pairing-desc" id="lbSubtitle">Peringkat total poin seluruh pemain dari semua chat &amp; grup.</p>
+      <div id="lbGroupSelectWrap" class="hidden" style="margin-bottom:12px;">
+        <select id="lbGroupSelect" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:13px; outline:none;"></select>
+      </div>
+      <div id="leaderboardList"></div>
+    </section>
+
   <!-- HALAMAN 2: FITUR -->
   <main class="main hidden" id="page-features">
     <div class="vip-promo-banner" id="featuresVipBanner">

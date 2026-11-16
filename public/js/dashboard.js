@@ -634,3 +634,78 @@ document.getElementById('btnSaveQueueSettings')?.addEventListener('click', async
     setTimeout(() => { msg.textContent = ''; }, 3500);
   }
 });
+
+
+// Leaderboard (.topglobal & .top)
+let activeLbTab = 'global';
+let lastLeaderboardData = { global: [], groups: [] };
+
+function escHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function renderLeaderboard(lbData) {
+  if (lbData) lastLeaderboardData = lbData;
+  const listEl = document.getElementById('leaderboardList');
+  const subEl = document.getElementById('lbSubtitle');
+  const groupWrap = document.getElementById('lbGroupSelectWrap');
+  const groupSel = document.getElementById('lbGroupSelect');
+  if (!listEl) return;
+
+  let rows = [];
+  if (activeLbTab === 'global') {
+    if (groupWrap) groupWrap.classList.add('hidden');
+    if (subEl) subEl.textContent = 'Peringkat akumulasi poin tertinggi dari seluruh chat & grup.';
+    rows = lastLeaderboardData.global || [];
+  } else {
+    const groups = lastLeaderboardData.groups || [];
+    if (groupWrap) groupWrap.classList.remove('hidden');
+    if (subEl) subEl.textContent = 'Peringkat poin pemain khusus di dalam masing-masing grup.';
+    if (groupSel) {
+      const prevVal = groupSel.value;
+      groupSel.innerHTML = groups.length
+        ? groups.map((g) => `<option value="${escHtml(g.groupJid)}">${escHtml(g.label)} (${g.players.length} pemain)</option>`).join('')
+        : '<option value="">Belum ada skor grup</option>';
+      if (prevVal && groups.some((g) => g.groupJid === prevVal)) {
+        groupSel.value = prevVal;
+      }
+      const selectedGroup = groups.find((g) => g.groupJid === groupSel.value) || groups[0];
+      rows = selectedGroup ? selectedGroup.players : [];
+    }
+  }
+
+  if (!rows.length) {
+    listEl.innerHTML = '<p class="pairing-desc" style="margin:0;">Belum ada data skor pemain. Mainkan game seperti <code>.susunkata</code> atau <code>.tebak</code> untuk mengumpulkan poin!</p>';
+    return;
+  }
+
+  const medals = ['🥇', '🥈', '🥉'];
+  listEl.innerHTML = rows.map((u, idx) => {
+    const badge = medals[idx] || `#${idx + 1}`;
+    return `
+      <div class="control-row">
+        <div class="control-info">
+          <div><strong style="margin-right:6px;">${badge}</strong><strong>${escHtml(u.name)}</strong></div>
+          <span>ID: ${escHtml(u.shortId)} • ${u.wins}x menang</span>
+        </div>
+        <span class="badge-online">${u.points} Poin</span>
+      </div>
+    `;
+  }).join('');
+}
+
+document.querySelectorAll('#lbTabGroup .seg-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    activeLbTab = btn.dataset.lb || 'global';
+    document.querySelectorAll('#lbTabGroup .seg-btn').forEach((b) => {
+      b.classList.toggle('active', b.dataset.lb === activeLbTab);
+    });
+    renderLeaderboard();
+  });
+});
+
+document.getElementById('lbGroupSelect')?.addEventListener('change', () => {
+  renderLeaderboard();
+});
