@@ -512,7 +512,7 @@ async function runCliPairingFlow() {
   const pairedPhone = getPairedPhoneNumber();
   if (pairedPhone) {
     setNotice(`✓ Sudah terpair dengan nomor +${pairedPhone}`);
-    return openMainMenu();
+    return openSettingsMenu();
   }
 
   const { cols, rows } = getScreenSize();
@@ -538,13 +538,13 @@ async function runCliPairingFlow() {
   const margin = ' '.repeat(Math.max(0, Math.floor((cols - W) / 2)));
   const rawInput = await promptLine(`${margin}${C.cyan}▸ Nomor WA:${C.reset} `);
   if (!rawInput) {
-    return openMainMenu();
+    return openSettingsMenu();
   }
 
   const phoneNumber = normalizePhoneInput(rawInput);
   if (phoneNumber.length < 9 || phoneNumber.length > 15) {
     setNotice('⚠ Nomor WhatsApp tidak valid!');
-    return openMainMenu();
+    return openSettingsMenu();
   }
 
   await showLoadingScreen('Meminta kode pairing ke WhatsApp...');
@@ -554,7 +554,7 @@ async function runCliPairingFlow() {
   const ready = await waitForLocalServerReady(5000);
   if (!ready) {
     setNotice('⚠ Server lokal belum siap, coba beberapa detik lagi.');
-    return openMainMenu();
+    return openSettingsMenu();
   }
 
   let pairingCode = '';
@@ -567,7 +567,7 @@ async function runCliPairingFlow() {
     const data = await resp.json();
     if (data.alreadyPaired && data.phoneNumber) {
       setNotice(`✓ Sudah terpair dengan nomor +${data.phoneNumber}`);
-      return openMainMenu();
+      return openSettingsMenu();
     }
     if (!resp.ok || !data.success || !data.pairingCode) {
       throw new Error(data.error || 'Gagal mendapatkan kode pairing');
@@ -575,7 +575,7 @@ async function runCliPairingFlow() {
     pairingCode = String(data.pairingCode).trim();
   } catch (e) {
     setNotice(`⚠ Pairing gagal: ${e.message.slice(0, 32)}`);
-    return openMainMenu();
+    return openSettingsMenu();
   }
 
   const formattedCode = pairingCode.length === 8
@@ -626,7 +626,7 @@ async function runCliPairingFlow() {
     releaseStdin();
     if (msg) setNotice(msg);
     refreshSystemSnapshot();
-    openMainMenu();
+    openSettingsMenu();
   }
 
   function onKey(str, key) {
@@ -920,6 +920,10 @@ function openSettingsMenu() {
       action: () => triggerManualUpdate()
     },
     {
+      label: 'Pair WhatsApp (8-Digit Code)',
+      action: () => runCliPairingFlow()
+    },
+    {
       label: 'Reset Sesi WA (Pairing Ulang)',
       action: () => {
         stopBackgroundServer();
@@ -951,10 +955,6 @@ function openSettingsMenu() {
 
 function openMainMenu() {
   runInteractiveMenu('MENU UTAMA', [
-    {
-      label: 'Pair WhatsApp (8-Digit Code)',
-      action: () => runCliPairingFlow()
-    },
     {
       label: 'Buka Website (Localhost)',
       action: () => {
