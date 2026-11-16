@@ -101,6 +101,34 @@ app.post('/api/logout', (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
 
+// Endpoint Pairing & Status khusus CLI lokal (127.0.0.1)
+app.post('/api/cli/pairing', async (req, res) => {
+  const ip = req.ip || req.socket?.remoteAddress || '';
+  if (!ip.includes('127.0.0.1') && !ip.includes('::1')) {
+    return res.status(403).json({ success: false, error: 'Hanya akses lokal CLI' });
+  }
+  try {
+    const phoneNumber = String(req.body?.phoneNumber || '').replace(/[^0-9]/g, '');
+    if (!phoneNumber || phoneNumber.length < 8) {
+      return res.status(400).json({ success: false, error: 'Nomor WhatsApp tidak valid' });
+    }
+    const { startBaileysConnection } = require('../core/baileys-handler.jsc');
+    const code = await startBaileysConnection(phoneNumber);
+    return res.json({ success: true, pairingCode: code });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/cli/status', (req, res) => {
+  const ip = req.ip || req.socket?.remoteAddress || '';
+  if (!ip.includes('127.0.0.1') && !ip.includes('::1')) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const { getStatus } = require('../core/baileys-handler.jsc');
+  return res.json({ status: getStatus() });
+});
+
 app.use(require('./middleware/auth'));
 app.use(require('./routes/pairing.jsc'));
 app.use(require('./routes/dashboard.jsc'));

@@ -68,7 +68,7 @@ function gradientText(text) {
     const idx = Math.floor(pos);
     const frac = pos - idx;
     const c1 = stops[idx];
-    const c2 = stops[Math.min(stops.length - 1, idx + 1)];
+    const c2 = Math.min(stops.length - 1, idx + 1)];
     const r = Math.round(c1[0] + (c2[0] - c1[0]) * frac);
     const g = Math.round(c1[1] + (c2[1] - c1[1]) * frac);
     const b = Math.round(c1[2] + (c2[2] - c1[2]) * frac);
@@ -288,6 +288,22 @@ function releaseStdin() {
   } catch {}
 }
 
+function promptLine(questionText) {
+  return new Promise((resolve) => {
+    releaseStdin();
+    process.stdout.write(TERM.showCursor);
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    rl.question(questionText, (answer) => {
+      rl.close();
+      process.stdout.write(TERM.hideCursor);
+      resolve(String(answer || '').trim());
+    });
+  });
+}
+
 function waitAnyKey(callback) {
   initKeypressOnce();
   if (process.stdin.isTTY) process.stdin.setRawMode(true);
@@ -333,7 +349,7 @@ async function showLoadingScreen(label = 'Menyiapkan antarmuka...') {
     }
 
     process.stdout.write(out);
-    await new Promise(r => setTimeout(r, 55));
+    await new Promise(r => setTimeout(r, 50));
   }
 }
 
@@ -463,7 +479,171 @@ function runInteractiveMenu(title, items, onSelect, onBackKey = null) {
 }
 
 // ==========================================
-// FITUR #4: BACKUP & RESTORE DATA BOT
+// FITUR PAIRING WHATSAPP LANGSUNG DI CLI
+// ==========================================
+function normalizePhoneInput(raw) {
+  let digits = String(raw || '').replace(/[^0-9]/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('08')) {
+    digits = '62' + digits.slice(1);
+  }
+  return digits;
+}
+
+async function waitForLocalServerReady(maxWaitMs = 5000) {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    try {
+      const r = await fetch('http://127.0.0.1:3000/api/cli/status');
+      if (r.ok) return true;
+    } catch {}
+    await new Promise(r => setTimeout(r, 250));
+  }
+  return false;
+}
+
+async function runCliPairingFlow() {
+  const { cols, rows } = getScreenSize();
+  const W = Math.min(44, Math.max(38, cols - 2));
+  const inner = W - 2;
+
+  const promptLines = [
+    padCenter(BANNER_LINE_1, cols),
+    padCenter(BANNER_LINE_2, cols),
+    padCenter(BANNER_LINE_3, cols),
+    padCenter(`${C.cyan}${C.bold}PAIRING WHATSAPP VIA CLI${C.reset}`, cols),
+    '',
+    ...buildBoxLines([
+      ` ${C.white}Masukkan nomor WA yang akan dijadikan bot.${C.reset}`,
+      ` ${C.dim}Contoh: 6285878041275 atau 085878041275${C.reset}`,
+      ` ${C.dim}(Kosongkan & Enter untuk batal)${C.reset}`
+    ], W, C.teal)
+  ];
+
+  const topPad = Math.max(1, Math.floor((rows - promptLines.length - 3) / 2));
+  process.stdout.write(TERM.repaintHome + '\n'.repeat(topPad) + promptLines.join('\n') + '\n\n');
+
+  const margin = ' '.repeat(Math.max(0, Math.floor((cols - W) / 2)));
+  const rawInput = await promptLine(`${margin}${C.cyan}▸ Nomor WA:${C.reset} `);
+  if (!rawInput) {
+    return openMainMenu();
+  }
+
+  const phoneNumber = normalizePhoneInput(rawInput);
+  if (phoneNumber.length < 9 || phoneNumber.length > 15) {
+    setNotice('⚠ Nomor WhatsApp tidak valid!');
+    return openMainMenu();
+  }
+
+  await showLoadingScreen('Meminta kode pairing ke WhatsApp...');
+
+  // Pastikan server latar belakang aktif dan siap menerima request pairing
+  startBackgroundServer();
+  const ready = await waitForLocalServerReady(5000);
+  if (!ready) {
+    setNotice('⚠ Server lokal belum siap, coba beberapa detik lagi.');
+    return openMainMenu();
+  }
+
+  let pairingCode = '';
+  try {
+    const resp = await fetch('http://127.0.0.1:3000/api/cli/pairing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber })
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.success || !data.pairingCode) {
+      throw new Error(data.error || 'Gagal mendapatkan kode pairing');
+    }
+    pairingCode = String(data.pairingCode).trim();
+  } catch (e) {
+    setNotice(`⚠ Pairing gagal: ${e.message.slice(0, 32)}`);
+    return openMainMenu();
+  }
+
+  const formattedCode = pairingCode.length === 8
+    ? `${pairingCode.slice(0, 4)} - ${pairingCode.slice(4)}`
+    : pairingCode;
+
+  let done = false;
+  let pollTimer = null;
+
+  function renderCodeScreen(statusHint) {
+    const sz = getScreenSize();
+    const boxW = Math.min(44, Math.max(38, sz.cols - 2));
+    const inW = boxW - 2;
+
+    const screenLines = [
+      padCenter(BANNER_LINE_1, sz.cols),
+      padCenter(BANNER_LINE_2, sz.cols),
+      padCenter(BANNER_LINE_3, sz.cols),
+      padCenter(`${C.cyan}${C.bold}KODE PAIRING WHATSAPP${C.reset}`, sz.cols),
+      '',
+      ...buildBoxLines([
+        padCenter(`${C.dim}Target: +${phoneNumber}${C.reset}`, inW),
+        '',
+        padCenter(`${C.selBg}   ${formattedCode}   ${C.reset}`, inW),
+        '',
+        padCenter(statusHint, inW)
+      ], boxW, C.teal),
+      ...buildBoxLines([
+        ` ${C.white}1. Buka WhatsApp > Perangkat Tertaut${C.reset}`,
+        ` ${C.white}2. Pilih "Tautkan dengan nomor telepon"${C.reset}`,
+        ` ${C.white}3. Masukkan 8 digit kode di atas${C.reset}`,
+        `${C.border}${'─'.repeat(inW)}${C.reset}`,
+        padCenter(`${C.dim}Tekan Esc / Enter untuk kembali${C.reset}`, inW)
+      ], boxW, C.border)
+    ];
+
+    const padT = Math.max(0, Math.floor((sz.rows - screenLines.length) / 2));
+    process.stdout.write(TERM.repaintHome + '\n'.repeat(padT) + screenLines.join('\n') + '\n');
+  }
+
+  renderCodeScreen(`${C.yellow}⏳ Menunggu konfirmasi dari HP...${C.reset}`);
+
+  function finishPairing(msg) {
+    if (done) return;
+    done = true;
+    if (pollTimer) clearInterval(pollTimer);
+    process.stdin.removeListener('keypress', onKey);
+    releaseStdin();
+    if (msg) setNotice(msg);
+    refreshSystemSnapshot();
+    openMainMenu();
+  }
+
+  function onKey(str, key) {
+    if (key && key.ctrl && key.name === 'c') {
+      if (pollTimer) clearInterval(pollTimer);
+      releaseStdin();
+      process.stdout.write(TERM.exitAlt);
+      process.exit(0);
+    }
+    if (key && (key.name === 'escape' || key.name === 'return' || key.name === 'enter' || key.name === 'backspace')) {
+      finishPairing('');
+    }
+  }
+
+  initKeypressOnce();
+  if (process.stdin.isTTY) process.stdin.setRawMode(true);
+  process.stdin.resume();
+  process.stdin.on('keypress', onKey);
+
+  pollTimer = setInterval(async () => {
+    if (done) return;
+    try {
+      const r = await fetch('http://127.0.0.1:3000/api/cli/status');
+      const d = await r.json();
+      if (d?.status === 'connected' || d?.status === 'open') {
+        finishPairing(`✓ WhatsApp (+${phoneNumber}) berhasil tertaut!`);
+      }
+    } catch {}
+  }, 2000);
+}
+
+// ==========================================
+// FITUR BACKUP & RESTORE DATA BOT
 // ==========================================
 function getBackupDirs() {
   const dirs = [];
@@ -561,7 +741,7 @@ function openBackupMenu() {
 }
 
 // ==========================================
-// FITUR #5: DIAGNOSTIK SISTEM (DOCTOR)
+// FITUR DIAGNOSTIK SISTEM (DOCTOR)
 // ==========================================
 function checkCmdExists(cmd) {
   try {
@@ -755,6 +935,10 @@ function openSettingsMenu() {
 
 function openMainMenu() {
   runInteractiveMenu('MENU UTAMA', [
+    {
+      label: 'Pair WhatsApp (8-Digit Code)',
+      action: () => runCliPairingFlow()
+    },
     {
       label: 'Buka Website (Localhost)',
       action: () => {
