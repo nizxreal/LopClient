@@ -1,9 +1,5 @@
 # 🤖 LopClient
 
-Bot WhatsApp modular berbasis Node.js & Baileys yang ringan untuk Termux, dilengkapi Web Dashboard lokal, kompilasi V8 bytecode (`.jsc`), serta pembersihan sesi 401 otomatis agar koneksi tetap stabil.
-
----
-
 ## 📋 Panduan Instalasi (Step-by-Step)
 
 ### Step 1 — Unduh Termux (F-Droid)
@@ -13,7 +9,7 @@ Unduh dan pasang aplikasi **Termux** versi resmi melalui F-Droid *(hindari versi
 ---
 
 ### Step 2 — Instalasi Otomatis (1 Perintah)
-Buka aplikasi Termux, lalu tempel perintah berikut dan tekan **Enter** untuk memasang Node.js, Git, FFmpeg, dependensi bot, serta pintasan global secara otomatis:
+Buka aplikasi Termux, tempel perintah berikut, lalu tekan **Enter** untuk memasang Node.js, Git, FFmpeg, dependensi bot, dan pintasan global secara otomatis:
 
 ```bash
 pkg update -y && pkg install -y nodejs git ffmpeg && rm -rf ~/LopClient && git clone https://github.com/nizxreal/LopClient.git ~/LopClient && bash ~/LopClient/install.sh
@@ -24,7 +20,7 @@ pkg update -y && pkg install -y nodejs git ffmpeg && rm -rf ~/LopClient && git c
 ---
 
 ### Step 3 — Menjalankan Bot
-Instalasi di atas cukup dilakukan **1 kali**. Selanjutnya, dari direktori mana saja di Termux kamu cukup menjalankan:
+Instalasi di atas cukup dilakukan **1 kali**. Selanjutnya, dari folder mana saja di Termux kamu cukup ketik:
 
 ```bash
 LopClient
