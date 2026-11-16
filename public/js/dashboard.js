@@ -21,8 +21,9 @@ function switchPage(page) {
   document.getElementById('page-features').classList.toggle('hidden', page !== 'features');
   document.getElementById('page-group')?.classList.toggle('hidden', page !== 'group');
   document.getElementById('page-custom')?.classList.toggle('hidden', page !== 'custom');
+  document.getElementById('page-leaderboard')?.classList.toggle('hidden', page !== 'leaderboard');
   document.getElementById('page-settings')?.classList.toggle('hidden', page !== 'settings');
-  const titles = { dashboard: 'LopClient', features: 'LopClient • Fitur', group: 'LopClient • Grup & Welcome', custom: 'LopClient • Custom Command', settings: 'LopClient • Settings' };
+  const titles = { dashboard: 'LopClient', features: 'LopClient • Fitur', group: 'LopClient • Grup & Welcome', custom: 'LopClient • Custom Command', leaderboard: 'LopClient • Leaderboard', settings: 'LopClient • Settings' };
   document.getElementById('pageTitle').textContent = titles[page] || 'LopClient';
 }
 
