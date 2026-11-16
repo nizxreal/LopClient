@@ -58,3 +58,21 @@ LopClient
   ```bash
   rm -rf ~/LopClient/data/auth_info
   ```
+
+---
+
+<!-- AUTO_CHANGELOG_START -->
+## 📋 Riwayat Pembaruan Terbaru (v1.0.10)
+> Diperbarui otomatis setiap 10 perubahan • Total perubahan: **10x** (2026-11-16)
+
+- feat(cli): tampilkan nomor terhubung jika WhatsApp sudah terpair (2026-11-17)
+- fix(cli): perbaiki syntax kurung siku pada gradientText (2026-11-17)
+- feat(cli): tambahkan pairing kode 8-digit WhatsApp langsung dari CLI (2026-11-17)
+- feat(cli): tambahkan Backup & Restore Data serta Diagnostik Sistem (Doctor) (2026-11-17)
+- fix(cli): perbaiki lebar kolom visual emoji pada border kotak tips (2026-11-17)
+- fix(cli): lepas stdin & hindari tumpukan keypress listener setelah update (2026-11-17)
+- perf(cli): hilangkan delay navigasi arrow & baca RAM via /proc (2026-11-17)
+- feat(cli): center layout vertikal, info status WA/RAM & sinkron versi otomatis (2026-11-17)
+- fix(security): perketat validasi admin grup untuk hidetag, kick, promote, dan demote (2026-11-17)
+- fix(install): tambah auto-fallback mirror Termux jika mirror utama error (2026-11-16)
+<!-- AUTO_CHANGELOG_END -->
