@@ -2,6 +2,7 @@
 require('bytenode');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const readline = require('readline');
 const { spawn, exec, execSync } = require('child_process');
 
@@ -29,7 +30,9 @@ const TERM = {
   enterAlt: '\x1b[?1049h\x1b[?25l\x1b[2J\x1b[H',
   exitAlt: '\x1b[?25h\x1b[?1049l',
   clearHome: '\x1b[2J\x1b[H',
-  repaintHome: '\x1b[H\x1b[J'
+  repaintHome: '\x1b[H\x1b[J',
+  showCursor: '\x1b[?25h',
+  hideCursor: '\x1b[?25l'
 };
 
 const C = {
@@ -83,18 +86,11 @@ let noticeTimer = null;
 function setNotice(msg) {
   statusNotice = msg;
   if (noticeTimer) clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(() => { statusNotice = ''; }, 4000);
+  noticeTimer = setTimeout(() => { statusNotice = ''; }, 4500);
 }
 
 function stripAnsi(str) {
-  return str.replace(/\x1b\[[0-9;]*m/g, '');
-}
-
-function getScreenSize() {
-  return {
-    cols: process.stdout.columns || 48,
-    rows: process.stdout.rows || 32
-  };
+  return String(str || '').replace(/\x1b\[[0-9;]*m/g, '');
 }
 
 function visualWidth(str) {
@@ -105,7 +101,7 @@ function visualWidth(str) {
     if (
       cp === 0x26A1 || // ⚡
       (cp >= 0x1F300 && cp <= 0x1FAFF) ||
-      (cp >= 0x2600 && cp <= 0x27BF && cp !== 0x25CF && cp !== 0x25CB && cp !== 0x25B8 && cp !== 0x25B2 && cp !== 0x25BC)
+      (cp >= 0x2600 && cp <= 0x27BF && cp !== 0x25CF && cp !== 0x25CB && cp !== 0x25B8 && cp !== 0x25B2 && cp !== 0x25BC && cp !== 0x2713 && cp !== 0x2714 && cp !== 0x2716)
     ) {
       w += 2;
     } else {
@@ -113,6 +109,13 @@ function visualWidth(str) {
     }
   }
   return w;
+}
+
+function getScreenSize() {
+  return {
+    cols: process.stdout.columns || 48,
+    rows: process.stdout.rows || 32
+  };
 }
 
 function padCenter(str, width) {
@@ -285,15 +288,26 @@ function releaseStdin() {
   } catch {}
 }
 
-async function showLoadingScreen() {
-  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-  const steps = [
-    'Memuat modul inti...',
-    'Menjalankan server bot...',
-    'Menyiapkan antarmuka...'
-  ];
+function waitAnyKey(callback) {
+  initKeypressOnce();
+  if (process.stdin.isTTY) process.stdin.setRawMode(true);
+  process.stdin.resume();
+  const handler = (str, key) => {
+    if (key && key.ctrl && key.name === 'c') {
+      releaseStdin();
+      process.stdout.write(TERM.exitAlt);
+      process.exit(0);
+    }
+    process.stdin.removeListener('keypress', handler);
+    releaseStdin();
+    callback();
+  };
+  setTimeout(() => process.stdin.on('keypress', handler), 120);
+}
 
-  const totalTicks = 12;
+async function showLoadingScreen(label = 'Menyiapkan antarmuka...') {
+  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  const totalTicks = 10;
   for (let i = 0; i <= totalTicks; i++) {
     const { cols, rows } = getScreenSize();
     const pct = Math.round((i / totalTicks) * 100);
@@ -301,7 +315,6 @@ async function showLoadingScreen() {
     const filled = Math.round((i / totalTicks) * barLen);
     const bar = `${gradientText('━'.repeat(filled))}${C.border}${'─'.repeat(barLen - filled)}${C.reset}`;
     const frame = frames[i % frames.length];
-    const step = steps[Math.min(steps.length - 1, Math.floor((i / (totalTicks + 1)) * steps.length))];
 
     const block = [
       BANNER_LINE_1,
@@ -310,7 +323,7 @@ async function showLoadingScreen() {
       `${C.dim}Engine ${APP_VERSION}${C.reset}`,
       '',
       `${bar} ${C.white}${C.bold}${String(pct).padStart(3, ' ')}%${C.reset}`,
-      `${C.cyan}${frame}${C.reset} ${C.dim}${step}${C.reset}`
+      `${C.cyan}${frame}${C.reset} ${C.dim}${label}${C.reset}`
     ];
 
     const topPad = Math.max(1, Math.floor((rows - block.length) / 2));
@@ -320,7 +333,7 @@ async function showLoadingScreen() {
     }
 
     process.stdout.write(out);
-    await new Promise(r => setTimeout(r, 60));
+    await new Promise(r => setTimeout(r, 55));
   }
 }
 
@@ -398,7 +411,7 @@ function runInteractiveMenu(title, items, onSelect, onBackKey = null) {
   const autoTimer = setInterval(() => {
     refreshSystemSnapshot();
     draw();
-  }, 2000);
+  }, 2500);
 
   initKeypressOnce();
   if (process.stdin.isTTY) process.stdin.setRawMode(true);
@@ -447,6 +460,181 @@ function runInteractiveMenu(title, items, onSelect, onBackKey = null) {
   }
 
   process.stdin.on('keypress', handleKey);
+}
+
+// ==========================================
+// FITUR #4: BACKUP & RESTORE DATA BOT
+// ==========================================
+function getBackupDirs() {
+  const dirs = [];
+  const sdcardDl = '/sdcard/Download';
+  try {
+    if (fs.existsSync(sdcardDl)) {
+      fs.accessSync(sdcardDl, fs.constants.W_OK);
+      dirs.push(sdcardDl);
+    }
+  } catch {}
+  dirs.push(os.homedir());
+  return dirs;
+}
+
+function runBackupData() {
+  const dirs = getBackupDirs();
+  const targetDir = dirs[0];
+  const now = new Date();
+  const stamp = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+    '-',
+    String(now.getHours()).padStart(2, '0'),
+    String(now.getMinutes()).padStart(2, '0')
+  ].join('');
+  const fileName = `lopclient-backup-${stamp}.tar.gz`;
+  const destPath = path.join(targetDir, fileName);
+
+  try {
+    execSync(
+      `tar --exclude='bot.log' --exclude='.bot_state.json' -czf "${destPath}" -C "${DATA_DIR}" .`,
+      { stdio: 'ignore' }
+    );
+    const sizeKb = (fs.statSync(destPath).size / 1024).toFixed(1);
+    const shortDir = targetDir.startsWith('/sdcard') ? '/sdcard/Download' : '~';
+    setNotice(`✓ Backup sukses: ${shortDir}/${fileName} (${sizeKb} KB)`);
+  } catch (e) {
+    setNotice(`⚠ Gagal backup: ${e.message.slice(0, 28)}`);
+  }
+  openBackupMenu();
+}
+
+function findLatestBackupFile() {
+  let candidates = [];
+  for (const dir of getBackupDirs()) {
+    try {
+      const files = fs.readdirSync(dir)
+        .filter((f) => f.startsWith('lopclient-backup-') && f.endsWith('.tar.gz'))
+        .map((f) => {
+          const full = path.join(dir, f);
+          return { name: f, full, mtime: fs.statSync(full).mtimeMs };
+        });
+      candidates = candidates.concat(files);
+    } catch {}
+  }
+  candidates.sort((a, b) => b.mtime - a.mtime);
+  return candidates[0] || null;
+}
+
+function runRestoreLatestBackup() {
+  const latest = findLatestBackupFile();
+  if (!latest) {
+    setNotice('⚠ Tidak ada file lopclient-backup-*.tar.gz ditemukan.');
+    return openBackupMenu();
+  }
+
+  try {
+    stopBackgroundServer();
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    execSync(`tar -xzf "${latest.full}" -C "${DATA_DIR}"`, { stdio: 'ignore' });
+    startBackgroundServer();
+    setNotice(`✓ Restore sukses dari ${latest.name}!`);
+  } catch (e) {
+    startBackgroundServer();
+    setNotice(`⚠ Gagal restore: ${e.message.slice(0, 28)}`);
+  }
+  openBackupMenu();
+}
+
+function openBackupMenu() {
+  const latest = findLatestBackupFile();
+  const backupInfo = latest ? latest.name : 'Belum ada file backup';
+
+  runInteractiveMenu(
+    'BACKUP & RESTORE DATA',
+    [
+      { label: 'Backup Sesi & Konfigurasi Sekarang', action: () => runBackupData() },
+      { label: `Restore Backup (${backupInfo.slice(0, 20)})`, action: () => runRestoreLatestBackup() },
+      { label: 'Kembali ke Settings', action: () => openSettingsMenu() }
+    ],
+    (chosen) => chosen.action(),
+    () => openSettingsMenu()
+  );
+}
+
+// ==========================================
+// FITUR #5: DIAGNOSTIK SISTEM (DOCTOR)
+// ==========================================
+function checkCmdExists(cmd) {
+  try {
+    execSync(`command -v ${cmd}`, { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function checkHttpReachable(url) {
+  return new Promise((resolve) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2500);
+    fetch(url, { method: 'HEAD', signal: controller.signal })
+      .then(() => { clearTimeout(timer); resolve(true); })
+      .catch(() => { clearTimeout(timer); resolve(false); });
+  });
+}
+
+function getFreeDiskInfo() {
+  try {
+    const out = execSync(`df -h "${ROOT_DIR}" | tail -n 1`).toString().trim().split(/\s+/);
+    if (out.length >= 4) return `${out[3]} bebas`;
+  } catch {}
+  return '-';
+}
+
+async function showSystemDoctor() {
+  await showLoadingScreen('Memeriksa kesehatan sistem...');
+
+  const hasFfmpeg = checkCmdExists('ffmpeg');
+  const hasGit = checkCmdExists('git');
+  const hasWakeLock = checkCmdExists('termux-wake-lock');
+  const [ghOk, fbOk] = await Promise.all([
+    checkHttpReachable('https://api.github.com'),
+    checkHttpReachable('https://lopclient-default-rtdb.asia-southeast1.firebasedatabase.app/.json')
+  ]);
+
+  const diskFree = getFreeDiskInfo();
+  const hasAuth = fs.existsSync(path.join(DATA_DIR, 'auth', 'creds.json'));
+  const badge = (ok, yes = 'OK', no = 'TIDAK ADA') =>
+    ok ? `${C.green}✓ ${yes}${C.reset}` : `${C.red}✖ ${no}${C.reset}`;
+
+  const { cols, rows } = getScreenSize();
+  const W = Math.min(44, Math.max(38, cols - 2));
+  const inner = W - 2;
+
+  const lines = [
+    padCenter(BANNER_LINE_1, cols),
+    padCenter(BANNER_LINE_2, cols),
+    padCenter(BANNER_LINE_3, cols),
+    padCenter(`${C.cyan}${C.bold}DIAGNOSTIK SISTEM (DOCTOR)${C.reset}`, cols),
+    '',
+    ...buildBoxLines([
+      ` ${C.dim}Node.js   :${C.reset} ${C.white}${process.version}${C.reset} ${C.dim}(${process.arch})${C.reset}`,
+      ` ${C.dim}FFmpeg    :${C.reset} ${badge(hasFfmpeg, 'Terpasang', 'Belum Instal')}`,
+      ` ${C.dim}Git CLI   :${C.reset} ${badge(hasGit, 'Terpasang', 'Belum Instal')}`,
+      ` ${C.dim}Termux API:${C.reset} ${badge(hasWakeLock, 'Siap', 'Opsional')}`,
+      ` ${C.dim}GitHub    :${C.reset} ${badge(ghOk, 'Terhubung', 'Offline')}`,
+      ` ${C.dim}Firebase  :${C.reset} ${badge(fbOk, 'Terhubung', 'Offline')}`,
+      ` ${C.dim}Sesi WA   :${C.reset} ${badge(hasAuth, 'Tersimpan', 'Belum Pair')}`,
+      ` ${C.dim}Storage   :${C.reset} ${C.cyan}${diskFree}${C.reset}`
+    ], W, C.teal),
+    ...buildBoxLines([
+      padCenter(`${C.dim}Tekan tombol apa saja untuk kembali${C.reset}`, inner)
+    ], W, C.border)
+  ];
+
+  const topPad = Math.max(0, Math.floor((rows - lines.length) / 2));
+  process.stdout.write(TERM.repaintHome + '\n'.repeat(topPad) + lines.join('\n') + '\n');
+
+  waitAnyKey(() => openSettingsMenu());
 }
 
 function showLiveLogs(onBack) {
@@ -520,6 +708,8 @@ function triggerManualUpdate() {
 function openSettingsMenu() {
   runInteractiveMenu('SETTINGS & KONTROL', [
     { label: 'Lihat Live Log Bot', action: () => showLiveLogs(openSettingsMenu) },
+    { label: 'Diagnostik Sistem (Doctor)', action: () => showSystemDoctor() },
+    { label: 'Backup & Restore Data', action: () => openBackupMenu() },
     {
       label: 'Restart Server Bot',
       action: () => {
@@ -596,6 +786,6 @@ function openMainMenu() {
   } catch {}
   process.stdout.write(TERM.enterAlt);
   startBackgroundServer();
-  await showLoadingScreen();
+  await showLoadingScreen('Menyiapkan antarmuka...');
   openMainMenu();
 })();
