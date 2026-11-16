@@ -16,14 +16,14 @@ const URL_DASHBOARD = 'http://localhost:3000';
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
-function getAppVersion() {
+const APP_VERSION = (() => {
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8'));
     return pkg.version ? `v${pkg.version.replace(/^v/, '')}` : 'v1.0.0';
   } catch {
     return 'v1.0.0';
   }
-}
+})();
 
 const TERM = {
   enterAlt: '\x1b[?1049h\x1b[?25l\x1b[2J\x1b[H',
@@ -178,7 +178,6 @@ function formatRuntime(startedAt) {
   return `${h}j ${m}m ${s}d`;
 }
 
-// Baca memori RSS langsung dari /proc tanpa spawn child process (0ms)
 function getProcessRamFast(pid) {
   if (!pid) return '-';
   try {
@@ -237,7 +236,7 @@ function refreshSystemSnapshot() {
   const state = readState();
   const alive = Boolean(state && isPidAlive(state.pid));
   cachedSnapshot = {
-    ver: getAppVersion(),
+    ver: APP_VERSION,
     alive,
     pid: alive ? state.pid : null,
     startedAt: alive ? state.startedAt : null,
@@ -254,6 +253,20 @@ function openBrowser(url) {
   });
 }
 
+function initKeypressOnce() {
+  if (!process.stdin._lopKeypressReady) {
+    readline.emitKeypressEvents(process.stdin, { escapeCodeTimeout: 25 });
+    process.stdin._lopKeypressReady = true;
+  }
+}
+
+function releaseStdin() {
+  try {
+    if (process.stdin.isTTY) process.stdin.setRawMode(false);
+    process.stdin.pause();
+  } catch {}
+}
+
 async function showLoadingScreen() {
   const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
   const steps = [
@@ -261,9 +274,8 @@ async function showLoadingScreen() {
     'Menjalankan server bot...',
     'Menyiapkan antarmuka...'
   ];
-  const ver = getAppVersion();
 
-  const totalTicks = 14;
+  const totalTicks = 12;
   for (let i = 0; i <= totalTicks; i++) {
     const { cols, rows } = getScreenSize();
     const pct = Math.round((i / totalTicks) * 100);
@@ -277,7 +289,7 @@ async function showLoadingScreen() {
       BANNER_LINE_1,
       BANNER_LINE_2,
       BANNER_LINE_3,
-      `${C.dim}Engine ${ver}${C.reset}`,
+      `${C.dim}Engine ${APP_VERSION}${C.reset}`,
       '',
       `${bar} ${C.white}${C.bold}${String(pct).padStart(3, ' ')}%${C.reset}`,
       `${C.cyan}${frame}${C.reset} ${C.dim}${step}${C.reset}`
@@ -290,7 +302,7 @@ async function showLoadingScreen() {
     }
 
     process.stdout.write(out);
-    await new Promise(r => setTimeout(r, 65));
+    await new Promise(r => setTimeout(r, 60));
   }
 }
 
@@ -370,7 +382,7 @@ function runInteractiveMenu(title, items, onSelect, onBackKey = null) {
     draw();
   }, 2000);
 
-  readline.emitKeypressEvents(process.stdin, { escapeCodeTimeout: 50 });
+  initKeypressOnce();
   if (process.stdin.isTTY) process.stdin.setRawMode(true);
   process.stdin.resume();
 
@@ -381,7 +393,7 @@ function runInteractiveMenu(title, items, onSelect, onBackKey = null) {
     clearInterval(autoTimer);
     process.stdout.removeListener('resize', onResize);
     process.stdin.removeListener('keypress', handleKey);
-    if (process.stdin.isTTY) process.stdin.setRawMode(false);
+    releaseStdin();
   }
 
   function handleKey(str, key) {
@@ -460,19 +472,21 @@ function showLiveLogs(onBack) {
       const keyStr = chunk.toString();
       if (keyStr === '\u0003') {
         clearInterval(watcher);
+        releaseStdin();
         process.stdout.write(TERM.exitAlt);
         process.exit(0);
       }
       clearInterval(watcher);
       process.stdin.removeListener('data', onExitKey);
-      if (process.stdin.isTTY) process.stdin.setRawMode(false);
+      releaseStdin();
       onBack();
     };
     process.stdin.on('data', onExitKey);
-  }, 250);
+  }, 200);
 }
 
 function triggerManualUpdate() {
+  releaseStdin();
   process.stdout.write(TERM.exitAlt + TERM.clearHome);
   if (!fs.existsSync(UPDATER_ENTRY)) {
     console.log(`\n${C.red}❌ File updater.js tidak ditemukan.${C.reset}\n`);
@@ -547,6 +561,7 @@ function openMainMenu() {
       label: 'Shutdown Bot (Kill & Exit)',
       action: () => {
         stopBackgroundServer();
+        releaseStdin();
         process.stdout.write(TERM.exitAlt + TERM.clearHome);
         console.log(`\n${C.red}${C.bold}  [✓] Server LopClient dimatikan (Killed).${C.reset}`);
         console.log(`${C.dim}  Sampai jumpa kembali!${C.reset}\n`);
