@@ -309,6 +309,7 @@ async function refreshDashboard() {
     document.getElementById('statRam').textContent = `${stats.ramUsedMb} MB`;
     document.getElementById('statRamSub').textContent = `dari ${stats.ramTotalMb} MB`;
 
+    if (data.leaderboard) renderLeaderboard(data.leaderboard);
     renderConfig(config);
     currentIsVip = Boolean(isVip);
     currentBotPrefix = config.prefix || ".";
