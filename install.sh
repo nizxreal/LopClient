@@ -3,6 +3,27 @@ set -e
 
 echo "\n\033[1;35m⚡ MEMULAI INSTALASI OTOMATIS LOPCLIENT...\033[0m\n"
 
+ensure_working_mirror() {
+  if ! pkg update -y >/dev/null 2>&1; then
+    echo "[!] Mirror bawaan bermasalah, mencoba ganti mirror otomatis..."
+    MIRROR_BASE="$PREFIX/etc/termux/mirrors"
+    CHOSEN="$PREFIX/etc/termux/chosen_mirrors"
+    for cand in \
+      "$MIRROR_BASE/asia/mirror.sg.gs" \
+      "$MIRROR_BASE/asia/kartolo.sby.datautama.net.id" \
+      "$MIRROR_BASE/default" \
+      "$MIRROR_BASE/all"; do
+      if [ -e "$cand" ]; then
+        ln -sfn "$cand" "$CHOSEN"
+        if pkg update -y >/dev/null 2>&1; then
+          echo "[✓] Berhasil beralih ke mirror: $(basename "$cand")"
+          return 0
+        fi
+      fi
+    done
+  fi
+}
+ensure_working_mirror
 pkg update -y && pkg upgrade -y -o Dpkg::Options::="--force-confnew" && pkg upgrade -y -o Dpkg::Options::="--force-confold"
 pkg install -y nodejs-lts git ffmpeg
 
