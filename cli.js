@@ -97,8 +97,26 @@ function getScreenSize() {
   };
 }
 
+function visualWidth(str) {
+  const clean = stripAnsi(str);
+  let w = 0;
+  for (const ch of clean) {
+    const cp = ch.codePointAt(0);
+    if (
+      cp === 0x26A1 || // ⚡
+      (cp >= 0x1F300 && cp <= 0x1FAFF) ||
+      (cp >= 0x2600 && cp <= 0x27BF && cp !== 0x25CF && cp !== 0x25CB && cp !== 0x25B8 && cp !== 0x25B2 && cp !== 0x25BC)
+    ) {
+      w += 2;
+    } else {
+      w += 1;
+    }
+  }
+  return w;
+}
+
 function padCenter(str, width) {
-  const len = stripAnsi(str).length;
+  const len = visualWidth(str);
   if (len >= width) return str;
   const left = Math.floor((width - len) / 2);
   const right = width - len - left;
@@ -106,7 +124,7 @@ function padCenter(str, width) {
 }
 
 function padRight(str, width) {
-  const len = stripAnsi(str).length;
+  const len = visualWidth(str);
   if (len >= width) return str;
   return str + ' '.repeat(width - len);
 }
