@@ -19,7 +19,7 @@ else
 fi
 
 echo "\033[1;36m[•] Menginstall dependensi Node.js...\033[0m"
-npm install --no-audit --no-fund
+npm_config_allow_git=all npm install --allow-git=all --no-audit --no-fund
 
 if [ -n "$PREFIX" ] && [ -d "$PREFIX/bin" ]; then
   printf '#!/data/data/com.termux/files/usr/bin/sh\nexec node "$HOME/LopClient/cli.js" "$@"\n' > "$PREFIX/bin/LopClient"
