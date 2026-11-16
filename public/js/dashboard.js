@@ -785,3 +785,30 @@ document.getElementById('btnAddBlacklistUser')?.addEventListener('click', async 
 });
 
 loadJoinedGroupsForBlacklist(false);
+
+
+// Risk Disclaimer Popup Handler
+(function initRiskDisclaimerModal() {
+  const STORAGE_KEY = 'lopclient_hide_risk_modal_v1';
+  const modal = document.getElementById('riskDisclaimerModal');
+  const chkHide = document.getElementById('chkHideRiskModal');
+  const btnAccept = document.getElementById('btnAcceptRiskModal');
+  if (!modal || !btnAccept) return;
+
+  const isHidden = localStorage.getItem(STORAGE_KEY) === '1';
+  if (isHidden) {
+    modal.style.display = 'none';
+    modal.classList.add('hidden');
+  } else {
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+
+  btnAccept.addEventListener('click', () => {
+    if (chkHide && chkHide.checked) {
+      localStorage.setItem(STORAGE_KEY, '1');
+    }
+    modal.style.display = 'none';
+    modal.classList.add('hidden');
+  });
+})();

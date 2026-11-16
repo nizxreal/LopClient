@@ -443,6 +443,36 @@
     </section>
   </main>
 
+  
+  <!-- POPUP PERINGATAN RISIKO PENGGUNAAN -->
+  <div id="riskDisclaimerModal" class="hidden" style="position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.68); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; padding:16px;">
+    <div style="width:100%; max-width:440px; background:var(--card, #161b22); color:var(--text, #f0f6fc); border:1px solid var(--border, #30363d); border-radius:16px; padding:20px; box-shadow:0 18px 48px rgba(0,0,0,0.45);">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+        <span style="font-size:22px;">⚠️</span>
+        <h3 style="margin:0; font-size:16px; font-weight:700; color:#f59e0b;">Peringatan Risiko &amp; Ketentuan Penggunaan</h3>
+      </div>
+
+      <p style="font-size:13px; line-height:1.55; color:var(--muted, #8b949e); margin:0 0 12px 0;">
+        Harap diperhatikan sebelum menghubungkan atau menjalankan bot WhatsApp:
+      </p>
+
+      <ul style="font-size:12.5px; line-height:1.6; color:var(--text, #e6edf3); margin:0 0 14px 0; padding-left:18px; display:flex; flex-direction:column; gap:6px;">
+        <li><strong>Risiko Ditanggung Pengguna:</strong> Penggunaan bot pihak ketiga memiliki risiko pembatasan atau pemblokiran akun (<em>banned</em>) oleh sistem WhatsApp.</li>
+        <li><strong>Gunakan Nomor Cadangan:</strong> Sangat disarankan menggunakan <strong>nomor WhatsApp kedua / cadangan</strong>, bukan nomor utama pribadi atau bisnis penting.</li>
+        <li><strong>Gunakan Secara Bijak:</strong> Hindari spam massal, aktifkan fitur <em>Antrean &amp; Delay</em> di menu Settings, dan patuhi ketentuan layanan WhatsApp.</li>
+      </ul>
+
+      <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted, #8b949e); cursor:pointer; user-select:none; margin-bottom:16px; padding:8px 10px; border-radius:10px; background:var(--surface, rgba(255,255,255,0.03)); border:1px solid var(--border, #30363d);">
+        <input type="checkbox" id="chkHideRiskModal" style="width:15px; height:15px; accent-color:#3b82f6; cursor:pointer;">
+        <span>Jangan tampilkan peringatan ini lagi di perangkat ini</span>
+      </label>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button type="button" id="btnAcceptRiskModal" class="btn-primary" style="width:100%; padding:10px 14px; font-size:13px; font-weight:600; border-radius:10px;">Saya Mengerti &amp; Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/dashboard.js?v=1794826590812"></script>
 </body>
 </html>
