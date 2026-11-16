@@ -318,6 +318,7 @@ async function refreshDashboard() {
       renderCustomCommandsUI();
     }
     if (features) renderFeatures(features, config, isVip);
+    if (leaderboard) renderLeaderboard(leaderboard);
   } catch {}
 }
 
