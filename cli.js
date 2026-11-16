@@ -26,9 +26,10 @@ function getAppVersion() {
 }
 
 const TERM = {
-  enterAlt: '\x1b[?1049h\x1b[?25l\x1b[2J\x1b[3J\x1b[H',
+  enterAlt: '\x1b[?1049h\x1b[?25l\x1b[2J\x1b[H',
   exitAlt: '\x1b[?25h\x1b[?1049l',
-  clearHome: '\x1b[2J\x1b[3J\x1b[H'
+  clearHome: '\x1b[2J\x1b[H',
+  repaintHome: '\x1b[H\x1b[J'
 };
 
 const C = {
@@ -71,6 +72,10 @@ function gradientText(text) {
     return `\x1b[1m\x1b[38;2;${r};${g};${b}m${ch}`;
   }).join('') + C.reset;
 }
+
+const BANNER_LINE_1 = gradientText('╦  ╔═╗╔═╗  ╔═╗╦  ╦╔═╗╔╗╔╔╦╗');
+const BANNER_LINE_2 = gradientText('║  ║ ║╠═╝  ║  ║  ║║╣ ║║║ ║ ');
+const BANNER_LINE_3 = gradientText('╩═╝╚═╝╩    ╚═╝╩═╝╩╚═╝╝╚╝ ╩ ');
 
 let statusNotice = '';
 let noticeTimer = null;
@@ -173,11 +178,15 @@ function formatRuntime(startedAt) {
   return `${h}j ${m}m ${s}d`;
 }
 
-function getProcessRam(pid) {
+// Baca memori RSS langsung dari /proc tanpa spawn child process (0ms)
+function getProcessRamFast(pid) {
   if (!pid) return '-';
   try {
-    const rssKb = Number(execSync(`ps -o rss= -p ${pid} 2>/dev/null`).toString().trim());
-    if (rssKb > 0) return `${(rssKb / 1024).toFixed(1)} MB`;
+    const statusText = fs.readFileSync(`/proc/${pid}/status`, 'utf8');
+    const match = statusText.match(/VmRSS:\s+(\d+)\s+kB/i);
+    if (match) {
+      return `${(Number(match[1]) / 1024).toFixed(1)} MB`;
+    }
   } catch {}
   return '-';
 }
@@ -222,6 +231,23 @@ function getTokenInfo() {
   return `${C.green}${hari}h ${jam}j${C.reset} ${C.dim}(${licenseId})${C.reset}`;
 }
 
+let cachedSnapshot = null;
+
+function refreshSystemSnapshot() {
+  const state = readState();
+  const alive = Boolean(state && isPidAlive(state.pid));
+  cachedSnapshot = {
+    ver: getAppVersion(),
+    alive,
+    pid: alive ? state.pid : null,
+    startedAt: alive ? state.startedAt : null,
+    ram: alive ? getProcessRamFast(state.pid) : '-',
+    waStatus: getWaAccountStatus(),
+    tokenInfo: getTokenInfo()
+  };
+  return cachedSnapshot;
+}
+
 function openBrowser(url) {
   exec(`termux-open-url "${url}"`, (err) => {
     if (err) exec(`xdg-open "${url}"`, () => {});
@@ -237,7 +263,7 @@ async function showLoadingScreen() {
   ];
   const ver = getAppVersion();
 
-  const totalTicks = 16;
+  const totalTicks = 14;
   for (let i = 0; i <= totalTicks; i++) {
     const { cols, rows } = getScreenSize();
     const pct = Math.round((i / totalTicks) * 100);
@@ -248,9 +274,9 @@ async function showLoadingScreen() {
     const step = steps[Math.min(steps.length - 1, Math.floor((i / (totalTicks + 1)) * steps.length))];
 
     const block = [
-      `${gradientText('╦  ╔═╗╔═╗  ╔═╗╦  ╦╔═╗╔╗╔╔╦╗')}`,
-      `${gradientText('║  ║ ║╠═╝  ║  ║  ║║╣ ║║║ ║ ')}`,
-      `${gradientText('╩═╝╚═╝╩    ╚═╝╩═╝╩╚═╝╝╚╝ ╩ ')}`,
+      BANNER_LINE_1,
+      BANNER_LINE_2,
+      BANNER_LINE_3,
       `${C.dim}Engine ${ver}${C.reset}`,
       '',
       `${bar} ${C.white}${C.bold}${String(pct).padStart(3, ' ')}%${C.reset}`,
@@ -258,59 +284,51 @@ async function showLoadingScreen() {
     ];
 
     const topPad = Math.max(1, Math.floor((rows - block.length) / 2));
-    let out = TERM.clearHome + '\n'.repeat(topPad);
+    let out = TERM.repaintHome + '\n'.repeat(topPad);
     for (const line of block) {
       out += padCenter(line, cols) + '\n';
     }
 
     process.stdout.write(out);
-    await new Promise(r => setTimeout(r, 70));
+    await new Promise(r => setTimeout(r, 65));
   }
 }
 
-function composeFrameLines(state, title, items, selectedIndex) {
+function composeFrameLines(snap, title, items, selectedIndex) {
   const { cols } = getScreenSize();
   const W = Math.min(44, Math.max(38, cols - 2));
   const inner = W - 2;
-  const ver = getAppVersion();
 
-  const alive = state && isPidAlive(state.pid);
-  const statusText = alive
-    ? `${C.green}● ONLINE${C.reset} ${C.dim}(PID ${state.pid})${C.reset}`
+  const statusText = snap.alive
+    ? `${C.green}● ONLINE${C.reset} ${C.dim}(PID ${snap.pid})${C.reset}`
     : `${C.red}○ OFFLINE${C.reset}`;
-  const runtimeAndRam = alive
-    ? `${C.white}${formatRuntime(state.startedAt)}${C.reset} ${C.dim}• RAM ${getProcessRam(state.pid)}${C.reset}`
+  const runtimeAndRam = snap.alive
+    ? `${C.white}${formatRuntime(snap.startedAt)}${C.reset} ${C.dim}• RAM ${snap.ram}${C.reset}`
     : `${C.dim}-${C.reset}`;
 
-  const lines = [];
-
-  // 1. Header Logo + Versi
-  lines.push(padCenter(`${gradientText('╦  ╔═╗╔═╗  ╔═╗╦  ╦╔═╗╔╗╔╔╦╗')}`, cols));
-  lines.push(padCenter(`${gradientText('║  ║ ║╠═╝  ║  ║  ║║╣ ║║║ ║ ')}`, cols));
-  lines.push(padCenter(`${gradientText('╩═╝╚═╝╩    ╚═╝╩═╝╩╚═╝╝╚╝ ╩ ')}`, cols));
-  lines.push(padCenter(`${C.dim}WA Bot & Local Control • ${C.cyan}${ver}${C.reset}`, cols));
-  lines.push('');
-
-  // 2. Card Informasi Sistem, Akun WA & Lisensi
-  lines.push(...buildBoxLines([
-    ` ${C.dim}Server  :${C.reset} ${statusText}`,
-    ` ${C.dim}WhatsApp:${C.reset} ${getWaAccountStatus()}`,
-    ` ${C.dim}Runtime :${C.reset} ${runtimeAndRam}`,
-    ` ${C.dim}Lisensi :${C.reset} ${getTokenInfo()}`,
-    ` ${C.dim}Web UI  :${C.reset} ${C.cyan}${URL_DASHBOARD}${C.reset}`
-  ], W, C.teal));
-
-  // 3. Card Tips Singkat
-  lines.push(...buildBoxLines([
-    ` ${C.yellow}⚡ Tips:${C.reset} ${C.dim}Aktifkan "Acquire wakelock" di${C.reset}`,
-    ` ${C.dim}notifikasi Termux agar bot aktif 24/7.${C.reset}`
-  ], W, C.border));
+  const lines = [
+    padCenter(BANNER_LINE_1, cols),
+    padCenter(BANNER_LINE_2, cols),
+    padCenter(BANNER_LINE_3, cols),
+    padCenter(`${C.dim}WA Bot & Local Control • ${C.cyan}${snap.ver}${C.reset}`, cols),
+    '',
+    ...buildBoxLines([
+      ` ${C.dim}Server  :${C.reset} ${statusText}`,
+      ` ${C.dim}WhatsApp:${C.reset} ${snap.waStatus}`,
+      ` ${C.dim}Runtime :${C.reset} ${runtimeAndRam}`,
+      ` ${C.dim}Lisensi :${C.reset} ${snap.tokenInfo}`,
+      ` ${C.dim}Web UI  :${C.reset} ${C.cyan}${URL_DASHBOARD}${C.reset}`
+    ], W, C.teal),
+    ...buildBoxLines([
+      ` ${C.yellow}⚡ Tips:${C.reset} ${C.dim}Aktifkan "Acquire wakelock" di${C.reset}`,
+      ` ${C.dim}notifikasi Termux agar bot aktif 24/7.${C.reset}`
+    ], W, C.border)
+  ];
 
   if (statusNotice) {
     lines.push(padCenter(`${C.green}${C.bold}${statusNotice}${C.reset}`, cols));
   }
 
-  // 4. Card Menu Interaktif
   const menuLines = [
     padCenter(`${C.cyan}${C.bold}${title}${C.reset}`, inner),
     padCenter(`${C.dim}▲/▼ Navigasi • Enter Pilih • R Refresh${C.reset}`, inner),
@@ -333,23 +351,26 @@ function composeFrameLines(state, title, items, selectedIndex) {
 
 function runInteractiveMenu(title, items, onSelect, onBackKey = null) {
   let selectedIndex = 0;
+  refreshSystemSnapshot();
 
   function draw() {
     const { rows } = getScreenSize();
-    const state = readState();
-    const frameLines = composeFrameLines(state, title, items, selectedIndex);
+    const snap = cachedSnapshot || refreshSystemSnapshot();
+    const frameLines = composeFrameLines(snap, title, items, selectedIndex);
 
-    // Center vertikal penuh (lebih turun ke tengah layar namun tetap aman untuk layar kecil)
     const topPad = Math.max(0, Math.floor((rows - frameLines.length) / 2));
-    const output = TERM.clearHome + '\n'.repeat(topPad) + frameLines.join('\n') + '\n';
+    const output = TERM.repaintHome + '\n'.repeat(topPad) + frameLines.join('\n') + '\n';
     process.stdout.write(output);
   }
 
   draw();
 
-  const autoTimer = setInterval(draw, 2000);
+  const autoTimer = setInterval(() => {
+    refreshSystemSnapshot();
+    draw();
+  }, 2000);
 
-  readline.emitKeypressEvents(process.stdin);
+  readline.emitKeypressEvents(process.stdin, { escapeCodeTimeout: 50 });
   if (process.stdin.isTTY) process.stdin.setRawMode(true);
   process.stdin.resume();
 
@@ -377,6 +398,7 @@ function runInteractiveMenu(title, items, onSelect, onBackKey = null) {
     }
 
     if (str === 'r' || str === 'R') {
+      refreshSystemSnapshot();
       draw();
     } else if (key && key.name === 'up') {
       selectedIndex = (selectedIndex - 1 + items.length) % items.length;
