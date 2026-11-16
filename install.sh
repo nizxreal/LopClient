@@ -3,7 +3,7 @@ set -e
 
 echo "\n\033[1;35m⚡ MEMULAI INSTALASI OTOMATIS LOPCLIENT...\033[0m\n"
 
-pkg update -y && pkg upgrade -y -o Dpkg::Options::="--force-confold"
+pkg update -y && pkg upgrade -y -o Dpkg::Options::="--force-confnew" && pkg upgrade -y -o Dpkg::Options::="--force-confold"
 pkg install -y nodejs-lts git ffmpeg
 
 cd "$HOME"
