@@ -20,7 +20,7 @@ try {
 
   // 3. Install dependensi jika ada package baru
   console.log('\n\x1b[36m[•] Memeriksa dependensi Node.js...\x1b[0m');
-  execSync('npm install --no-audit --no-fund', { cwd: ROOT_DIR, stdio: 'inherit' });
+  execSync('npm_config_allow_git=all npm install --allow-git=all --no-audit --no-fund', { cwd: ROOT_DIR, stdio: 'inherit' });
 
   // 4. Hapus segel lock lama & perbarui shortcut global LopClient & LopClientUpdate
   if (fs.existsSync(LOCK_FILE)) {
