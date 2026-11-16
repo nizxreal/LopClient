@@ -11,9 +11,19 @@ const STATE_FILE = path.join(DATA_DIR, '.bot_state.json');
 const TOKEN_FILE = path.join(DATA_DIR, '.session_token');
 const LOG_FILE = path.join(DATA_DIR, 'bot.log');
 const SERVER_ENTRY = path.join(ROOT_DIR, 'server', 'server.js');
+const UPDATER_ENTRY = path.join(ROOT_DIR, 'updater.js');
 const URL_DASHBOARD = 'http://localhost:3000';
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
+
+function getAppVersion() {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8'));
+    return pkg.version ? `v${pkg.version.replace(/^v/, '')}` : 'v1.0.0';
+  } catch {
+    return 'v1.0.0';
+  }
+}
 
 const TERM = {
   enterAlt: '\x1b[?1049h\x1b[?25l\x1b[2J\x1b[3J\x1b[H',
@@ -25,26 +35,26 @@ const C = {
   reset: '\x1b[0m',
   bold: '\x1b[1m',
   dim: '\x1b[2m',
-  cyan: '\x1b[38;5;177m',     // Soft Orchid / Neon Lavender
-  teal: '\x1b[38;5;135m',     // Electric Violet (#a855f7)
-  purpleDeep: '\x1b[38;5;93m', // Deep Purple (#7c3aed)
-  lavender: '\x1b[38;5;225m', // White-Lavender glow
+  cyan: '\x1b[38;5;177m',
+  teal: '\x1b[38;5;135m',
+  purpleDeep: '\x1b[38;5;93m',
+  lavender: '\x1b[38;5;225m',
   blue: '\x1b[38;5;141m',
   green: '\x1b[92m',
-  yellow: '\x1b[38;5;219m',   // Pink-Violet highlight
+  yellow: '\x1b[38;5;219m',
   red: '\x1b[91m',
   white: '\x1b[97m',
-  border: '\x1b[38;5;60m',    // Muted Dark Violet Border
-  selBg: '\x1b[48;5;93m\x1b[97m\x1b[1m' // Selected Menu: Deep Neon Purple Bg + White Bold
+  border: '\x1b[38;5;60m',
+  selBg: '\x1b[48;5;93m\x1b[97m\x1b[1m'
 };
 
 function gradientText(text) {
   const stops = [
-    [255, 255, 255], // White ("Lop")
-    [233, 213, 255], // Lavender
-    [192, 132, 252], // Light Violet
-    [168, 85, 247],  // Neon Purple ("Client")
-    [124, 58, 237],  // Deep Violet
+    [255, 255, 255],
+    [233, 213, 255],
+    [192, 132, 252],
+    [168, 85, 247],
+    [124, 58, 237],
   ];
   const chars = [...text];
   const len = Math.max(1, chars.length - 1);
@@ -63,13 +73,14 @@ function gradientText(text) {
 }
 
 let statusNotice = '';
+let noticeTimer = null;
 
 function setNotice(msg) {
   statusNotice = msg;
-  setTimeout(() => { statusNotice = ''; }, 4000);
+  if (noticeTimer) clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => { statusNotice = ''; }, 4000);
 }
 
-// Helper layout & ANSI-safe padding
 function stripAnsi(str) {
   return str.replace(/\x1b\[[0-9;]*m/g, '');
 }
@@ -77,7 +88,7 @@ function stripAnsi(str) {
 function getScreenSize() {
   return {
     cols: process.stdout.columns || 48,
-    rows: process.stdout.rows || 24
+    rows: process.stdout.rows || 32
   };
 }
 
@@ -95,7 +106,7 @@ function padRight(str, width) {
   return str + ' '.repeat(width - len);
 }
 
-function makeBox(lines, boxWidth = 44, borderColor = C.border) {
+function buildBoxLines(lines, boxWidth = 44, borderColor = C.border) {
   const { cols } = getScreenSize();
   const margin = ' '.repeat(Math.max(0, Math.floor((cols - boxWidth) / 2)));
   const inner = boxWidth - 2;
@@ -106,7 +117,7 @@ function makeBox(lines, boxWidth = 44, borderColor = C.border) {
     out.push(`${margin}${borderColor}│${C.reset}${padRight(line, inner)}${borderColor}│${C.reset}`);
   }
   out.push(`${margin}${borderColor}╰${'─'.repeat(inner)}╯${C.reset}`);
-  return out.join('\n');
+  return out;
 }
 
 function readState() {
@@ -162,6 +173,35 @@ function formatRuntime(startedAt) {
   return `${h}j ${m}m ${s}d`;
 }
 
+function getProcessRam(pid) {
+  if (!pid) return '-';
+  try {
+    const rssKb = Number(execSync(`ps -o rss= -p ${pid} 2>/dev/null`).toString().trim());
+    if (rssKb > 0) return `${(rssKb / 1024).toFixed(1)} MB`;
+  } catch {}
+  return '-';
+}
+
+function getWaAccountStatus() {
+  const credsCandidates = [
+    path.join(DATA_DIR, 'auth', 'creds.json'),
+    path.resolve(ROOT_DIR, '../data/auth/creds.json')
+  ];
+  for (const credsPath of credsCandidates) {
+    if (fs.existsSync(credsPath)) {
+      try {
+        const creds = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
+        const rawId = creds?.me?.id || '';
+        const phone = rawId.split('@')[0].split(':')[0];
+        if (phone) {
+          return `${C.green}● Terhubung${C.reset} ${C.dim}(+${phone})${C.reset}`;
+        }
+      } catch {}
+    }
+  }
+  return `${C.yellow}○ Belum Pairing${C.reset}`;
+}
+
 function getTokenInfo() {
   if (!fs.existsSync(TOKEN_FILE)) {
     return `${C.yellow}Belum Login${C.reset}`;
@@ -188,7 +228,6 @@ function openBrowser(url) {
   });
 }
 
-// Loading Screen presisi di tengah (Vertikal & Horizontal)
 async function showLoadingScreen() {
   const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
   const steps = [
@@ -196,6 +235,7 @@ async function showLoadingScreen() {
     'Menjalankan server bot...',
     'Menyiapkan antarmuka...'
   ];
+  const ver = getAppVersion();
 
   const totalTicks = 16;
   for (let i = 0; i <= totalTicks; i++) {
@@ -211,6 +251,7 @@ async function showLoadingScreen() {
       `${gradientText('╦  ╔═╗╔═╗  ╔═╗╦  ╦╔═╗╔╗╔╔╦╗')}`,
       `${gradientText('║  ║ ║╠═╝  ║  ║  ║║╣ ║║║ ║ ')}`,
       `${gradientText('╩═╝╚═╝╩    ╚═╝╩═╝╩╚═╝╝╚╝ ╩ ')}`,
+      `${C.dim}Engine ${ver}${C.reset}`,
       '',
       `${bar} ${C.white}${C.bold}${String(pct).padStart(3, ' ')}%${C.reset}`,
       `${C.cyan}${frame}${C.reset} ${C.dim}${step}${C.reset}`
@@ -223,83 +264,85 @@ async function showLoadingScreen() {
     }
 
     process.stdout.write(out);
-    await new Promise(r => setTimeout(r, 75));
+    await new Promise(r => setTimeout(r, 70));
   }
 }
 
-function renderBanner(state) {
+function composeFrameLines(state, title, items, selectedIndex) {
   const { cols } = getScreenSize();
   const W = Math.min(44, Math.max(38, cols - 2));
   const inner = W - 2;
+  const ver = getAppVersion();
 
   const alive = state && isPidAlive(state.pid);
   const statusText = alive
     ? `${C.green}● ONLINE${C.reset} ${C.dim}(PID ${state.pid})${C.reset}`
     : `${C.red}○ OFFLINE${C.reset}`;
+  const runtimeAndRam = alive
+    ? `${C.white}${formatRuntime(state.startedAt)}${C.reset} ${C.dim}• RAM ${getProcessRam(state.pid)}${C.reset}`
+    : `${C.dim}-${C.reset}`;
 
-  let out = TERM.clearHome + '\n';
+  const lines = [];
 
-  // Header Logo (Centered)
-  const logoLines = [
-    `${gradientText('╦  ╔═╗╔═╗  ╔═╗╦  ╦╔═╗╔╗╔╔╦╗')}`,
-    `${gradientText('║  ║ ║╠═╝  ║  ║  ║║╣ ║║║ ║ ')}`,
-    `${gradientText('╩═╝╚═╝╩    ╚═╝╩═╝╩╚═╝╝╚╝ ╩ ')}`,
-    `${C.dim}WA Bot & Local Control (Termux)${C.reset}`
-  ];
-  for (const l of logoLines) {
-    out += padCenter(l, cols) + '\n';
-  }
-  out += '\n';
+  // 1. Header Logo + Versi
+  lines.push(padCenter(`${gradientText('╦  ╔═╗╔═╗  ╔═╗╦  ╦╔═╗╔╗╔╔╦╗')}`, cols));
+  lines.push(padCenter(`${gradientText('║  ║ ║╠═╝  ║  ║  ║║╣ ║║║ ║ ')}`, cols));
+  lines.push(padCenter(`${gradientText('╩═╝╚═╝╩    ╚═╝╩═╝╩╚═╝╝╚╝ ╩ ')}`, cols));
+  lines.push(padCenter(`${C.dim}WA Bot & Local Control • ${C.cyan}${ver}${C.reset}`, cols));
+  lines.push('');
 
-  // Card 1: Informasi Sistem & Token
-  const infoCard = makeBox([
-    ` ${C.dim}Status  :${C.reset} ${statusText}`,
-    ` ${C.dim}Runtime :${C.reset} ${C.white}${alive ? formatRuntime(state.startedAt) : '-'}${C.reset}`,
+  // 2. Card Informasi Sistem, Akun WA & Lisensi
+  lines.push(...buildBoxLines([
+    ` ${C.dim}Server  :${C.reset} ${statusText}`,
+    ` ${C.dim}WhatsApp:${C.reset} ${getWaAccountStatus()}`,
+    ` ${C.dim}Runtime :${C.reset} ${runtimeAndRam}`,
     ` ${C.dim}Lisensi :${C.reset} ${getTokenInfo()}`,
     ` ${C.dim}Web UI  :${C.reset} ${C.cyan}${URL_DASHBOARD}${C.reset}`
-  ], W, C.teal);
-  out += infoCard + '\n';
+  ], W, C.teal));
 
-  // Card 2: Tips Singkat
-  const tipsCard = makeBox([
-    ` ${C.yellow}⚡ Tips:${C.reset} ${C.dim}Aktifkan "Acquire wakelock"${C.reset}`,
-    ` ${C.dim}di notifikasi Termux agar bot 24/7.${C.reset}`
-  ], W, C.border);
-  out += tipsCard + '\n';
+  // 3. Card Tips Singkat
+  lines.push(...buildBoxLines([
+    ` ${C.yellow}⚡ Tips:${C.reset} ${C.dim}Aktifkan "Acquire wakelock" di${C.reset}`,
+    ` ${C.dim}notifikasi Termux agar bot aktif 24/7.${C.reset}`
+  ], W, C.border));
 
   if (statusNotice) {
-    out += padCenter(`${C.green}${C.bold}${statusNotice}${C.reset}`, cols) + '\n';
+    lines.push(padCenter(`${C.green}${C.bold}${statusNotice}${C.reset}`, cols));
   }
 
-  process.stdout.write(out);
-  return W;
+  // 4. Card Menu Interaktif
+  const menuLines = [
+    padCenter(`${C.cyan}${C.bold}${title}${C.reset}`, inner),
+    padCenter(`${C.dim}▲/▼ Navigasi • Enter Pilih • R Refresh${C.reset}`, inner),
+    `${C.border}${'─'.repeat(inner)}${C.reset}`
+  ];
+
+  items.forEach((item, idx) => {
+    const num = `${idx + 1}.`;
+    if (idx === selectedIndex) {
+      const label = padRight(` ▸ ${num} ${item.label}`, inner);
+      menuLines.push(`${C.selBg}${label}${C.reset}`);
+    } else {
+      menuLines.push(`   ${C.dim}${num}${C.reset} ${C.white}${item.label}${C.reset}`);
+    }
+  });
+
+  lines.push(...buildBoxLines(menuLines, W, C.border));
+  return lines;
 }
 
-function runInteractiveMenu(title, items, onSelect) {
+function runInteractiveMenu(title, items, onSelect, onBackKey = null) {
   let selectedIndex = 0;
 
   function draw() {
+    const { rows } = getScreenSize();
     const state = readState();
-    const W = renderBanner(state);
-    const inner = W - 2;
+    const frameLines = composeFrameLines(state, title, items, selectedIndex);
 
-    const menuLines = [
-      padCenter(`${C.cyan}${C.bold}${title}${C.reset}`, inner),
-      padCenter(`${C.dim}▲/▼ Navigasi • Enter Pilih • R Refresh${C.reset}`, inner),
-      `${C.border}${'─'.repeat(inner)}${C.reset}`
-    ];
-
-    items.forEach((item, idx) => {
-      const num = `${idx + 1}.`;
-      if (idx === selectedIndex) {
-        const label = padRight(` ▸ ${num} ${item.label}`, inner);
-        menuLines.push(`${C.selBg}${label}${C.reset}`);
-      } else {
-        menuLines.push(`   ${C.dim}${num}${C.reset} ${C.white}${item.label}${C.reset}`);
-      }
-    });
-
-    process.stdout.write(makeBox(menuLines, W, C.border) + '\n');
+    // Center vertikal penuh (lebih turun ke tengah layar namun tetap aman untuk layar kecil)
+    const topPad = Math.max(0, Math.floor((rows - frameLines.length) / 2));
+    const output = TERM.clearHome + '\n'.repeat(topPad) + frameLines.join('\n') + '\n';
+    process.stdout.write(output);
   }
 
   draw();
@@ -325,6 +368,12 @@ function runInteractiveMenu(title, items, onSelect) {
       cleanup();
       process.stdout.write(TERM.exitAlt);
       process.exit(0);
+    }
+
+    if (onBackKey && key && (key.name === 'escape' || key.name === 'backspace')) {
+      cleanup();
+      onBackKey();
+      return;
     }
 
     if (str === 'r' || str === 'R') {
@@ -353,14 +402,14 @@ function showLiveLogs(onBack) {
   const alive = state && isPidAlive(state.pid);
   process.stdout.write(TERM.clearHome);
   process.stdout.write(`${C.cyan}${C.bold} === LIVE LOG SERVER (Tekan Q / Esc / Enter untuk kembali) ===${C.reset}\n`);
-  process.stdout.write(`${C.dim} File Log: ${LOG_FILE} | Status: ${alive ? "ONLINE (PID " + state.pid + ")" : "OFFLINE"}${C.reset}\n\n`);
+  process.stdout.write(`${C.dim} File Log: ${LOG_FILE} | Status: ${alive ? 'ONLINE (PID ' + state.pid + ')' : 'OFFLINE'}${C.reset}\n\n`);
 
   let lastSize = 0;
   if (fs.existsSync(LOG_FILE)) {
-    const content = fs.readFileSync(LOG_FILE, "utf8");
+    const content = fs.readFileSync(LOG_FILE, 'utf8');
     if (content.trim()) {
-      const lines = content.split("\n").slice(-22).join("\n");
-      process.stdout.write(lines + "\n");
+      const lines = content.split('\n').slice(-22).join('\n');
+      process.stdout.write(lines + '\n');
     } else {
       process.stdout.write(`${C.yellow} (Belum ada log tercatat. Jalankan command di WA untuk melihat aktivitas.)${C.reset}\n`);
     }
@@ -373,11 +422,11 @@ function showLiveLogs(onBack) {
     if (!fs.existsSync(LOG_FILE)) return;
     const stat = fs.statSync(LOG_FILE);
     if (stat.size > lastSize) {
-      const fd = fs.openSync(LOG_FILE, "r");
+      const fd = fs.openSync(LOG_FILE, 'r');
       const buf = Buffer.alloc(stat.size - lastSize);
       fs.readSync(fd, buf, 0, buf.length, lastSize);
       fs.closeSync(fd);
-      process.stdout.write(buf.toString("utf8"));
+      process.stdout.write(buf.toString('utf8'));
       lastSize = stat.size;
     }
   }, 500);
@@ -387,18 +436,31 @@ function showLiveLogs(onBack) {
     process.stdin.resume();
     const onExitKey = (chunk) => {
       const keyStr = chunk.toString();
-      if (keyStr === "\u0003") {
+      if (keyStr === '\u0003') {
         clearInterval(watcher);
         process.stdout.write(TERM.exitAlt);
         process.exit(0);
       }
       clearInterval(watcher);
-      process.stdin.removeListener("data", onExitKey);
+      process.stdin.removeListener('data', onExitKey);
       if (process.stdin.isTTY) process.stdin.setRawMode(false);
       onBack();
     };
-    process.stdin.on("data", onExitKey);
+    process.stdin.on('data', onExitKey);
   }, 250);
+}
+
+function triggerManualUpdate() {
+  process.stdout.write(TERM.exitAlt + TERM.clearHome);
+  if (!fs.existsSync(UPDATER_ENTRY)) {
+    console.log(`\n${C.red}❌ File updater.js tidak ditemukan.${C.reset}\n`);
+    process.exit(1);
+  }
+  const child = spawn(process.execPath, [UPDATER_ENTRY], {
+    cwd: ROOT_DIR,
+    stdio: 'inherit'
+  });
+  child.on('exit', (code) => process.exit(code || 0));
 }
 
 function openSettingsMenu() {
@@ -412,6 +474,10 @@ function openSettingsMenu() {
         setNotice('✓ Server berhasil di-restart!');
         openSettingsMenu();
       }
+    },
+    {
+      label: 'Cek Update Sekarang',
+      action: () => triggerManualUpdate()
     },
     {
       label: 'Reset Sesi WA (Pairing Ulang)',
@@ -440,7 +506,7 @@ function openSettingsMenu() {
       }
     },
     { label: 'Kembali ke Menu Utama', action: () => openMainMenu() }
-  ], (chosen) => chosen.action());
+  ], (chosen) => chosen.action(), () => openMainMenu());
 }
 
 function openMainMenu() {
@@ -449,17 +515,18 @@ function openMainMenu() {
       label: 'Buka Website (Localhost)',
       action: () => {
         openBrowser(URL_DASHBOARD);
+        setNotice('✓ Membuka browser ke localhost:3000...');
         openMainMenu();
       }
     },
     { label: 'Refresh Status', action: () => openMainMenu() },
-    { label: 'Settings', action: () => openSettingsMenu() },
+    { label: 'Settings & Kontrol', action: () => openSettingsMenu() },
     {
-      label: 'Matikan Bot (Termasuk Exit)',
+      label: 'Shutdown Bot (Kill & Exit)',
       action: () => {
         stopBackgroundServer();
         process.stdout.write(TERM.exitAlt + TERM.clearHome);
-        console.log(`\n${C.red}${C.bold}  [✓] Server LopClient dimatikan.${C.reset}`);
+        console.log(`\n${C.red}${C.bold}  [✓] Server LopClient dimatikan (Killed).${C.reset}`);
         console.log(`${C.dim}  Sampai jumpa kembali!${C.reset}\n`);
         process.exit(0);
       }
