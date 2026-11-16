@@ -1,6 +1,8 @@
 <div align="center">
 
 # 🤖 LopClient
+> **Unduh Termux (F-Droid):** [https://f-droid.org/en/packages/com.termux/](https://f-droid.org/en/packages/com.termux/) *(Gunakan versi F-Droid, bukan Play Store)*
+
 **WhatsApp Bot Engine & Web Dashboard Ringan untuk Termux**
 
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
