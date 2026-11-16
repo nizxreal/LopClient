@@ -48,6 +48,10 @@
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
       <span>Custom Command</span>
     </a>
+    <a class="nav-item" data-page="settings">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Settings</span>
+    </a>
 
     <div class="sidebar-footer">
       <div class="footer-card">
@@ -345,6 +349,74 @@
       </div>
       <p class="pairing-desc">Slot custom command aktif: maksimal <strong>2 command</strong> untuk paket <strong>FREE</strong> dan <strong>4 command</strong> untuk paket <strong>VIP</strong>.</p>
       <div id="customCommandsList"></div>
+    </section>
+  </main>
+
+
+  <!-- HALAMAN 5: SETTINGS -->
+  <main class="main hidden" id="page-settings">
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Identitas & Custom Nama Bot</span>
+      </div>
+      <p class="pairing-desc">Nama ini ditampilkan pada header menu pengguna (<code>.menu</code>) dan pesan sambutan bot tanpa mengubah identitas engine <strong>/menu</strong>.</p>
+      <div class="inline-input-row">
+        <input type="text" id="settingsBotNameInput" placeholder="Contoh: LopBot Official" maxlength="32">
+        <button type="button" class="btn-primary btn-compact" id="btnSaveSettingsBotName">Simpan</button>
+      </div>
+      <div class="save-hint" id="settingsBotNameMsg"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Antrean & Delay Eksekusi Command</span>
+        <span class="badge-online" id="queueStatusBadge">Antrean: 0</span>
+      </div>
+      <p class="pairing-desc">Mencegah bot terkena limit WhatsApp atau lonjakan RAM saat beberapa pengguna mengirim command secara bersamaan. Perintah akan diproses satu per satu sesuai jeda waktu.</p>
+
+      <div class="control-row">
+        <div class="control-info">
+          <strong>Aktifkan Antrean Delay</strong>
+          <span>Beri jeda otomatis saat banyak command masuk bersamaan</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleQueueEnabled">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="control-row">
+        <div class="control-info">
+          <strong>Bebaskan Owner / Bot</strong>
+          <span>Nomor bot sendiri langsung dieksekusi tanpa antre</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleQueueSkipOwner">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label for="queueDelayInput" style="display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px;">Jeda Antar Command (Milidetik / ms — 1000 ms = 1 detik)</label>
+        <div class="inline-input-row">
+          <input type="number" id="queueDelayInput" min="0" max="30000" step="100" placeholder="1500">
+          <button type="button" class="btn-primary btn-compact" id="btnSaveQueueSettings">Simpan Settings</button>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+          <button type="button" class="seg-btn queue-preset" data-ms="0" style="padding:6px 10px; font-size:11px; border-radius:8px; border:1px solid var(--border);">0 ms (Tanpa Jeda)</button>
+          <button type="button" class="seg-btn queue-preset" data-ms="1000" style="padding:6px 10px; font-size:11px; border-radius:8px; border:1px solid var(--border);">1000 ms (1 dtk)</button>
+          <button type="button" class="seg-btn queue-preset" data-ms="1500" style="padding:6px 10px; font-size:11px; border-radius:8px; border:1px solid var(--border);">1500 ms (1.5 dtk)</button>
+          <button type="button" class="seg-btn queue-preset" data-ms="2500" style="padding:6px 10px; font-size:11px; border-radius:8px; border:1px solid var(--border);">2500 ms (2.5 dtk)</button>
+          <button type="button" class="seg-btn queue-preset" data-ms="4000" style="padding:6px 10px; font-size:11px; border-radius:8px; border:1px solid var(--border);">4000 ms (4 dtk)</button>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label for="queueMaxInput" style="display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px;">Batas Maksimal Antrean Menumpuk</label>
+        <input type="number" id="queueMaxInput" min="1" max="200" placeholder="25" style="width:100%; box-sizing:border-box; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:13px; outline:none;">
+      </div>
+
+      <div class="save-hint" id="queueSaveMsg" style="margin-top:10px;"></div>
     </section>
   </main>
 

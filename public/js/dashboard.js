@@ -21,7 +21,8 @@ function switchPage(page) {
   document.getElementById('page-features').classList.toggle('hidden', page !== 'features');
   document.getElementById('page-group')?.classList.toggle('hidden', page !== 'group');
   document.getElementById('page-custom')?.classList.toggle('hidden', page !== 'custom');
-  const titles = { dashboard: 'LopClient', features: 'LopClient • Fitur', group: 'LopClient • Grup & Welcome', custom: 'LopClient • Custom Command' };
+  document.getElementById('page-settings')?.classList.toggle('hidden', page !== 'settings');
+  const titles = { dashboard: 'LopClient', features: 'LopClient • Fitur', group: 'LopClient • Grup & Welcome', custom: 'LopClient • Custom Command', settings: 'LopClient • Settings' };
   document.getElementById('pageTitle').textContent = titles[page] || 'LopClient';
 }
 
@@ -245,6 +246,22 @@ function renderConfig(cfg) {
     b.classList.toggle('active', b.dataset.val === cfg.prefix);
   });
   document.getElementById('toggleAutoRead').checked = Boolean(cfg.autoRead);
+
+  const sBotInp = document.getElementById('settingsBotNameInput');
+  if (sBotInp && !sBotInp.dataset.edited && cfg.botName) {
+    sBotInp.value = cfg.botName;
+  }
+  if (cfg.queueSettings) {
+    const tqe = document.getElementById('toggleQueueEnabled');
+    const tqs = document.getElementById('toggleQueueSkipOwner');
+    const qdi = document.getElementById('queueDelayInput');
+    const qmi = document.getElementById('queueMaxInput');
+    if (tqe) tqe.checked = Boolean(cfg.queueSettings.enabled);
+    if (tqs) tqs.checked = cfg.queueSettings.skipOwner !== false;
+    if (qdi && !qdi.dataset.edited) qdi.value = cfg.queueSettings.delayMs ?? 1500;
+    if (qmi && !qmi.dataset.edited) qmi.value = cfg.queueSettings.maxQueueSize ?? 25;
+  }
+
 }
 
 async function refreshDashboard() {
@@ -584,3 +601,55 @@ function renderCategorizedCommands() {
 
 document.getElementById("featureSearchInput")?.addEventListener("input", renderCategorizedCommands);
 document.getElementById("featureCatFilter")?.addEventListener("change", renderCategorizedCommands);
+
+
+// Settings Page Handlers
+document.getElementById('settingsBotNameInput')?.addEventListener('input', (e) => { e.target.dataset.edited = '1'; });
+document.getElementById('queueDelayInput')?.addEventListener('input', (e) => { e.target.dataset.edited = '1'; });
+document.getElementById('queueMaxInput')?.addEventListener('input', (e) => { e.target.dataset.edited = '1'; });
+
+document.getElementById('btnSaveSettingsBotName')?.addEventListener('click', async () => {
+  const inp = document.getElementById('settingsBotNameInput');
+  const val = (inp?.value || '').trim();
+  if (!val) return;
+  await updateConfig({ botName: val });
+  if (inp) delete inp.dataset.edited;
+  const sideInp = document.getElementById('customBotNameInput');
+  if (sideInp) sideInp.value = val;
+  const msg = document.getElementById('settingsBotNameMsg');
+  if (msg) {
+    msg.textContent = `✓ Nama bot "${val}" berhasil diperbarui.`;
+    setTimeout(() => { msg.textContent = ''; }, 3000);
+  }
+});
+
+document.querySelectorAll('.queue-preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const inp = document.getElementById('queueDelayInput');
+    if (inp) {
+      inp.value = btn.dataset.ms;
+      inp.dataset.edited = '1';
+    }
+  });
+});
+
+document.getElementById('btnSaveQueueSettings')?.addEventListener('click', async () => {
+  const qdi = document.getElementById('queueDelayInput');
+  const qmi = document.getElementById('queueMaxInput');
+  const payload = {
+    queueSettings: {
+      enabled: document.getElementById('toggleQueueEnabled')?.checked,
+      skipOwner: document.getElementById('toggleQueueSkipOwner')?.checked,
+      delayMs: Number(qdi?.value ?? 1500),
+      maxQueueSize: Number(qmi?.value ?? 25),
+    }
+  };
+  await updateConfig(payload);
+  if (qdi) delete qdi.dataset.edited;
+  if (qmi) delete qmi.dataset.edited;
+  const msg = document.getElementById('queueSaveMsg');
+  if (msg) {
+    msg.textContent = `✓ Pengaturan delay (${payload.queueSettings.delayMs} ms) & antrean tersimpan.`;
+    setTimeout(() => { msg.textContent = ''; }, 3500);
+  }
+});
