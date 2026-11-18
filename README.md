@@ -62,17 +62,17 @@ LopClient
 ---
 
 <!-- AUTO_CHANGELOG_START -->
-## 📋 Riwayat Pembaruan Terbaru (v1.0.10)
-> Diperbarui otomatis setiap 10 perubahan • Total perubahan: **10x** (2026-11-16)
+## 📋 Riwayat Pembaruan Terbaru (v1.0.30)
+> Diperbarui otomatis setiap 10 perubahan • Total perubahan: **30x** (2026-11-18)
 
-- feat(cli): tampilkan nomor terhubung jika WhatsApp sudah terpair (2026-11-17)
-- fix(cli): perbaiki syntax kurung siku pada gradientText (2026-11-17)
-- feat(cli): tambahkan pairing kode 8-digit WhatsApp langsung dari CLI (2026-11-17)
-- feat(cli): tambahkan Backup & Restore Data serta Diagnostik Sistem (Doctor) (2026-11-17)
-- fix(cli): perbaiki lebar kolom visual emoji pada border kotak tips (2026-11-17)
-- fix(cli): lepas stdin & hindari tumpukan keypress listener setelah update (2026-11-17)
-- perf(cli): hilangkan delay navigasi arrow & baca RAM via /proc (2026-11-17)
-- feat(cli): center layout vertikal, info status WA/RAM & sinkron versi otomatis (2026-11-17)
-- fix(security): perketat validasi admin grup untuk hidetag, kick, promote, dan demote (2026-11-17)
-- fix(install): tambah auto-fallback mirror Termux jika mirror utama error (2026-11-16)
+- feat(rvo): tambahkan paksa media-retry request sebelum fallback blokir WA (2026-11-18)
+- fix(rvo): tangkap messages.update & validasi directPath view-once (2026-11-18)
+- feat(rvo): simpan cache mediaKey pesan masuk di baileys-handler agar view-once selalu terbuka (2026-11-18)
+- fix(rvo,iqc): perbaiki ekstraksi view-once Baileys v7 & hapus fallback SVG polos pada iqc (2026-11-18)
+- feat(plugins): upgrade rvo & tambah fitur populer bratvid, smeme, attp/ttp & hd (2026-11-18)
+- feat(maker): rotasi lintas penyedia API untuk qc, fakecall & fakelobby (2026-11-18)
+- feat(maker): multi-API endpoint & font Roboto TTF untuk qc, tqc, iqc, wq, fakecall & fakelobby (2026-11-18)
+- fix(maker): render semua SVG plugin maker via renderSvgToPng (@resvg/resvg-js) (2026-11-18)
+- fix(maker): gunakan @resvg/resvg-js untuk render SVG ke PNG pada qc, tqc, iqc, wq, fakecall & fakelobby (2026-11-18)
+- fix(maker): gunakan @resvg/resvg-js untuk render SVG ke PNG pada qc, tqc, iqc, wq, fakecall & fakelobby (2026-11-18)
 <!-- AUTO_CHANGELOG_END -->
