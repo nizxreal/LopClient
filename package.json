@@ -1,6 +1,6 @@
 {
   "name": "wa-bot-dashboard",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "engines": {
     "node": ">=20.0.0 <21.0.0"
   },
