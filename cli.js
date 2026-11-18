@@ -44,7 +44,7 @@ const C = {
   purpleDeep: '\x1b[38;5;93m',
   lavender: '\x1b[38;5;225m',
   blue: '\x1b[38;5;141m',
-  green: '\x1b[92m',
+  green: '\x1b[38;5;46m',
   yellow: '\x1b[38;5;219m',
   red: '\x1b[91m',
   white: '\x1b[97m',
@@ -259,18 +259,92 @@ function getTokenInfo() {
 
 let cachedSnapshot = null;
 
-function refreshSystemSnapshot() {
-  const state = readState();
-  const alive = Boolean(state && isPidAlive(state.pid));
+function checkPort3000Open() {
+  return new Promise((resolve) => {
+    const net = require('net');
+    const sock = new net.Socket();
+    sock.setTimeout(350);
+    sock.once('connect', () => {
+      sock.destroy();
+      resolve(true);
+    });
+    sock.once('error', () => {
+      sock.destroy();
+      resolve(false);
+    });
+    sock.once('timeout', () => {
+      sock.destroy();
+      resolve(false);
+    });
+    sock.connect(3000, '127.0.0.1');
+  });
+}
+
+function findRunningServerPid() {
+  try {
+    const { execSync } = require('child_process');
+    const out = execSync("pgrep -f 'server/server\.js' || true", { encoding: 'utf8', timeout: 400 }).trim();
+    const pids = out.split(/\s+/).map(Number).filter((n) => n > 0 && n !== process.pid);
+    return pids.length ? pids[pids.length - 1] : null;
+  } catch {
+    return null;
+  }
+}
+
+async function refreshSystemSnapshotAsync() {
+  let state = readState();
+  let alive = Boolean(state && isPidAlive(state.pid));
+
+  if (!alive) {
+    const portUp = await checkPort3000Open();
+    if (portUp) {
+      const detectedPid = findRunningServerPid() || (state && state.pid) || 0;
+      alive = true;
+      state = {
+        pid: detectedPid,
+        startedAt: (state && state.startedAt) || Date.now()
+      };
+      try {
+        if (detectedPid) {
+          fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+        }
+      } catch {}
+    }
+  }
+
   cachedSnapshot = {
     ver: APP_VERSION,
     alive,
-    pid: alive ? state.pid : null,
-    startedAt: alive ? state.startedAt : null,
-    ram: alive ? getProcessRamFast(state.pid) : '-',
+    pid: alive && state && state.pid ? state.pid : null,
+    startedAt: alive && state ? state.startedAt : null,
+    ram: alive && state && state.pid ? getProcessRamFast(state.pid) : '-',
     waStatus: getWaAccountStatus(),
     tokenInfo: getTokenInfo()
   };
+  return cachedSnapshot;
+}
+
+function refreshSystemSnapshot() {
+  let state = readState();
+  let alive = Boolean(state && isPidAlive(state.pid));
+  if (!alive) {
+    const detectedPid = findRunningServerPid();
+    if (detectedPid && isPidAlive(detectedPid)) {
+      alive = true;
+      state = { pid: detectedPid, startedAt: (state && state.startedAt) || Date.now() };
+      try { fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2)); } catch {}
+    }
+  }
+  cachedSnapshot = {
+    ver: APP_VERSION,
+    alive,
+    pid: alive && state ? state.pid : null,
+    startedAt: alive && state ? state.startedAt : null,
+    ram: alive && state ? getProcessRamFast(state.pid) : '-',
+    waStatus: getWaAccountStatus(),
+    tokenInfo: getTokenInfo()
+  };
+  refreshSystemSnapshotAsync().catch(() => {});
   return cachedSnapshot;
 }
 
