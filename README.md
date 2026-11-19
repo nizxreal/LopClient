@@ -62,17 +62,17 @@ LopClient
 ---
 
 <!-- AUTO_CHANGELOG_START -->
-## 📋 Riwayat Pembaruan Terbaru (v1.0.30)
-> Diperbarui otomatis setiap 10 perubahan • Total perubahan: **30x** (2026-11-18)
+## 📋 Riwayat Pembaruan Terbaru (v1.0.40)
+> Diperbarui otomatis setiap 10 perubahan • Total perubahan: **40x** (2026-11-19)
 
-- feat(rvo): tambahkan paksa media-retry request sebelum fallback blokir WA (2026-11-18)
-- fix(rvo): tangkap messages.update & validasi directPath view-once (2026-11-18)
-- feat(rvo): simpan cache mediaKey pesan masuk di baileys-handler agar view-once selalu terbuka (2026-11-18)
-- fix(rvo,iqc): perbaiki ekstraksi view-once Baileys v7 & hapus fallback SVG polos pada iqc (2026-11-18)
-- feat(plugins): upgrade rvo & tambah fitur populer bratvid, smeme, attp/ttp & hd (2026-11-18)
-- feat(maker): rotasi lintas penyedia API untuk qc, fakecall & fakelobby (2026-11-18)
-- feat(maker): multi-API endpoint & font Roboto TTF untuk qc, tqc, iqc, wq, fakecall & fakelobby (2026-11-18)
-- fix(maker): render semua SVG plugin maker via renderSvgToPng (@resvg/resvg-js) (2026-11-18)
-- fix(maker): gunakan @resvg/resvg-js untuk render SVG ke PNG pada qc, tqc, iqc, wq, fakecall & fakelobby (2026-11-18)
-- fix(maker): gunakan @resvg/resvg-js untuk render SVG ke PNG pada qc, tqc, iqc, wq, fakecall & fakelobby (2026-11-18)
+- fix(core): hapus total dependensi @resvg/resvg-js agar kompatibel di semua HP (2026-11-19)
+- fix(ui): cegah flickering dropdown whitelist/blacklist saat polling & tambah Whitelist Semua (2026-11-19)
+- fix(maker): urutkan ulang endpoint brat agar dukungan angka lebih konsisten (2026-11-19)
+- fix(maker): hapus dependensi @resvg/resvg-js pada bratvid (2026-11-19)
+- fix(maker): kembalikan animasi bratvid & pisahkan fitur bratvidv4 dark neon (2026-11-18)
+- refactor(maker): konsolidasi endpoint aktif bratvid & varian ke bratvid.js (2026-11-18)
+- feat(maker): perluas rotasi bratvidv4 hingga 16 penyedia REST API (2026-11-18)
+- refactor(maker): gunakan murni endpoint API eksternal untuk bratvidv4 (2026-11-18)
+- feat(maker): tambahkan plugin bratvidv4 multi-provider API & fallback lokal (2026-11-18)
+- feat(maker): tambahkan removebg & bersihkan sisa hook rvo (2026-11-18)
 <!-- AUTO_CHANGELOG_END -->
