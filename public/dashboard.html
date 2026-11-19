@@ -485,7 +485,10 @@
       <div id="whitelistGroupPanel" class="hidden" style="margin-top:14px;">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
           <label for="whitelistGroupSelect" style="font-size:12px; font-weight:600; color:var(--muted);">Whitelist Grup (Hanya Grup Ini yang Diizinkan)</label>
-          <button type="button" class="seg-btn" id="btnClearWhitelistGroups" style="padding:4px 9px; font-size:11px; border-radius:7px; border:1px solid rgba(239,68,68,0.4); color:#f87171;">Reset</button>
+          <div style="display:flex; gap:6px;">
+            <button type="button" class="seg-btn" id="btnWhitelistAllGroups" style="padding:4px 9px; font-size:11px; border-radius:7px; border:1px solid var(--border);">Whitelist Semua</button>
+            <button type="button" class="seg-btn" id="btnClearWhitelistGroups" style="padding:4px 9px; font-size:11px; border-radius:7px; border:1px solid rgba(239,68,68,0.4); color:#f87171;">Reset</button>
+          </div>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
           <select id="whitelistGroupSelect" style="flex:1; min-width:0; height:40px; padding:0 10px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:13px; outline:none;">
@@ -544,7 +547,7 @@
   </div>
 
   <script src="/js/dashboard.js?v=1794826590812"></script>
-  <div id="lop-version-badge" style="position:fixed;bottom:10px;right:12px;z-index:9999;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;font-family:monospace;background:rgba(15,23,42,0.78);color:#94a3b8;border:1px solid rgba(148,163,184,0.25);backdrop-filter:blur(6px);pointer-events:none;">LopClient <span id="lop-app-version">v1.0.37</span></div>
+  <div id="lop-version-badge" style="position:fixed;bottom:10px;right:12px;z-index:9999;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;font-family:monospace;background:rgba(15,23,42,0.78);color:#94a3b8;border:1px solid rgba(148,163,184,0.25);backdrop-filter:blur(6px);pointer-events:none;">LopClient <span id="lop-app-version">v1.0.38</span></div>
 
   <script>
     (() => {

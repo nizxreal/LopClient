@@ -664,34 +664,55 @@ function escapeHtmlSafe(str) {
     .replace(/"/g, '&quot;');
 }
 
-function populateGroupDropdowns(cfg) {
+let _lastBlDropdownSig = "";
+let _lastWlDropdownSig = "";
+
+function populateGroupDropdowns(cfg, force = false) {
   const blSel = document.getElementById('blacklistGroupSelect');
   const wlSel = document.getElementById('whitelistGroupSelect');
 
   const blIds = new Set((cfg?.blacklistedGroups || []).map((g) => g.id));
   const wlIds = new Set((cfg?.whitelistedGroups || []).map((g) => g.id));
 
-  if (blSel) {
+  if (blSel && (force || document.activeElement !== blSel)) {
     const availBl = cachedJoinedGroups.filter((g) => !blIds.has(g.id));
+    let nextBlHtml = "";
     if (!cachedJoinedGroups.length) {
-      blSel.innerHTML = '<option value="">-- Bot belum terhubung / tidak ada grup --</option>';
+      nextBlHtml = '<option value="">-- Bot belum terhubung / tidak ada grup --</option>';
     } else if (!availBl.length) {
-      blSel.innerHTML = '<option value="">-- Semua grup sudah masuk blacklist --</option>';
+      nextBlHtml = '<option value="">-- Semua grup sudah masuk blacklist --</option>';
     } else {
-      blSel.innerHTML = '<option value="">-- Pilih grup yang di-blacklist --</option>' +
+      nextBlHtml = '<option value="">-- Pilih grup yang di-blacklist --</option>' +
         availBl.map((g) => `<option value="${escapeHtmlSafe(g.id)}" data-name="${escapeHtmlSafe(g.name)}">${escapeHtmlSafe(g.name)} (${g.participantsCount} member)</option>`).join('');
+    }
+    if (force || nextBlHtml !== _lastBlDropdownSig) {
+      const prevVal = blSel.value;
+      blSel.innerHTML = nextBlHtml;
+      if (prevVal && Array.from(blSel.options).some((o) => o.value === prevVal)) {
+        blSel.value = prevVal;
+      }
+      _lastBlDropdownSig = nextBlHtml;
     }
   }
 
-  if (wlSel) {
+  if (wlSel && (force || document.activeElement !== wlSel)) {
     const availWl = cachedJoinedGroups.filter((g) => !wlIds.has(g.id));
+    let nextWlHtml = "";
     if (!cachedJoinedGroups.length) {
-      wlSel.innerHTML = '<option value="">-- Bot belum terhubung / tidak ada grup --</option>';
+      nextWlHtml = '<option value="">-- Bot belum terhubung / tidak ada grup --</option>';
     } else if (!availWl.length) {
-      wlSel.innerHTML = '<option value="">-- Semua grup sudah di-whitelist --</option>';
+      nextWlHtml = '<option value="">-- Semua grup sudah di-whitelist --</option>';
     } else {
-      wlSel.innerHTML = '<option value="">-- Pilih grup yang diizinkan --</option>' +
+      nextWlHtml = '<option value="">-- Pilih grup yang diizinkan --</option>' +
         availWl.map((g) => `<option value="${escapeHtmlSafe(g.id)}" data-name="${escapeHtmlSafe(g.name)}">${escapeHtmlSafe(g.name)} (${g.participantsCount} member)</option>`).join('');
+    }
+    if (force || nextWlHtml !== _lastWlDropdownSig) {
+      const prevVal = wlSel.value;
+      wlSel.innerHTML = nextWlHtml;
+      if (prevVal && Array.from(wlSel.options).some((o) => o.value === prevVal)) {
+        wlSel.value = prevVal;
+      }
+      _lastWlDropdownSig = nextWlHtml;
     }
   }
 }
@@ -702,7 +723,7 @@ async function loadJoinedGroupsForBlacklist(showToast = false) {
     const data = await res.json();
     if (data.success && Array.isArray(data.groups)) {
       cachedJoinedGroups = data.groups;
-      populateGroupDropdowns(window._lastDashCfg || {});
+      populateGroupDropdowns(window._lastDashCfg || {}, true);
       if (showToast) showBlacklistMsg(`✓ Daftar grup diperbarui (${cachedJoinedGroups.length} grup ditemukan).`);
     }
   } catch {}
@@ -871,6 +892,21 @@ document.getElementById('btnAddWhitelistGroup')?.addEventListener('click', async
   if (current.some((g) => g.id === id)) return;
   await updateConfig({ whitelistedGroups: [...current, { id, name }] });
   showBlacklistMsg(`✓ Grup "${name}" ditambahkan ke whitelist.`);
+});
+
+document.getElementById('btnWhitelistAllGroups')?.addEventListener('click', async () => {
+  if (!cachedJoinedGroups.length) {
+    showBlacklistMsg('⚠️ Tidak ada daftar grup yang ditemukan (pastikan bot connected).');
+    return;
+  }
+  const current = Array.isArray(window._lastDashCfg?.whitelistedGroups) ? window._lastDashCfg.whitelistedGroups : [];
+  const map = new Map(current.map((g) => [g.id, g]));
+  for (const g of cachedJoinedGroups) {
+    map.set(g.id, { id: g.id, name: g.name });
+  }
+  const merged = Array.from(map.values());
+  await updateConfig({ whitelistedGroups: merged });
+  showBlacklistMsg(`✓ Semua grup (${merged.length} grup) berhasil ditambahkan ke whitelist.`);
 });
 
 document.getElementById('btnClearWhitelistGroups')?.addEventListener('click', async () => {
